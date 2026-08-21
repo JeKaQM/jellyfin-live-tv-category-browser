@@ -1,0 +1,69 @@
+<div id="liveTvSuggestedPage" data-dom-cache="true" data-role="page" class="page libraryPage liveTvPage pageWithAbsoluteTabs withTabs" data-title="${LiveTV}" data-backdroptype="series,movie">
+    <div class="liveTvContainer">
+        <div class="pageTabContent" id="suggestionsTab" data-index="0">
+            <div class="liveTvCategoryLanding">
+                <div class="liveTvCategoryHero padded-left padded-right">
+                    <div class="liveTvCategoryHeroCopy">
+                        <h1 class="liveTvCategoryHeroTitle">Browse Live TV</h1>
+                        <p class="liveTvCategoryHeroText">Choose a category to see its channels.</p>
+                    </div>
+                    <div class="liveTvCategorySummary" role="status" aria-live="polite"></div>
+                </div>
+                <div class="liveTvCategoryList"></div>
+            </div>
+            <div class="liveTvCategoryChannels hide">
+                <div class="sectionTitleContainer sectionTitleContainer-cards padded-left padded-right">
+                    <button type="button" is="emby-button" class="button-flat button-flat-mini btnCategoryBack" title="Back to Live TV categories">
+                        <span class="material-icons arrow_back" aria-hidden="true"></span>
+                    </button>
+                    <h2 class="sectionTitle sectionTitle-cards liveTvCategoryName"></h2>
+                </div>
+                <div class="liveTvCategoryChannelError hide padded-left padded-right padded-bottom" role="status"></div>
+                <div class="flex align-items-center justify-content-center flex-wrap-wrap padded-top padded-left padded-right padded-bottom focuscontainer-x">
+                    <div class="paging"></div>
+                </div>
+                <div is="emby-itemscontainer" class="liveTvCategoryChannelItems itemsContainer vertical-wrap padded-left padded-right"></div>
+                <div class="flex align-items-center justify-content-center flex-wrap-wrap padded-top padded-left padded-right padded-bottom focuscontainer-x">
+                    <div class="paging"></div>
+                </div>
+            </div>
+        </div>
+        <div class="pageTabContent flexPageTabContent absolutePageTabContent" id="guideTab" data-index="1" style="width:auto;padding-top:0; padding-bottom: 0!important;">
+        </div>
+        <div class="pageTabContent" id="channelsTab" data-index="2">
+            <div class="flex align-items-center justify-content-center flex-wrap-wrap padded-top padded-left padded-right padded-bottom focuscontainer-x">
+                <div class="paging"></div>
+                <div class="btnFilter-wrapper">
+                    <button is="paper-icon-button-light" class="btnFilter sectionTitleButton" title="${Filter}"><span class="material-icons filter_alt" aria-hidden="true"></span></button>
+                </div>
+            </div>
+            <div is="emby-itemscontainer" id="items" class="itemsContainer vertical-wrap padded-left padded-right"></div>
+            <div class="flex align-items-center justify-content-center flex-wrap-wrap padded-top padded-left padded-right padded-bottom focuscontainer-x">
+                <div class="paging"></div>
+            </div>
+        </div>
+        <div class="pageTabContent" id="recordingsTab" data-index="3">
+            <div id="latestRecordings" class="verticalSection hide">
+                <div class="sectionTitleContainer sectionTitleContainer-cards padded-left">
+                    <button type="button" is="emby-button" class="button-flat button-flat-mini sectionTitleTextButton more" data-type="latest">
+                        <h2 class="sectionTitle sectionTitle-cards">${HeaderLatestRecordings}</h2>
+                        <span class="material-icons chevron_right" aria-hidden="true"></span>
+                    </button>
+                </div>
+                <div is="emby-itemscontainer" class="recordingItems itemsContainer padded-left padded-right"></div>
+            </div>
+        </div>
+        <div class="pageTabContent" id="scheduleTab" data-index="4">
+            <div id="activeRecordings" class="verticalSection hide">
+                <h2 class="sectionTitle sectionTitle-cards padded-left">${HeaderActiveRecordings}</h2>
+                <div is="emby-itemscontainer" class="recordingItems itemsContainer padded-left padded-right"></div>
+            </div>
+            <div id="upcomingRecordings" class="hide">
+                <div class="recordingItems"></div>
+            </div>
+        </div>
+        <div class="pageTabContent padded-top" id="seriesTab" data-index="5">
+            <div is="emby-itemscontainer" class="vertical-wrap itemsContainer centered padded-left padded-right" id="items"></div>
+        </div>
+    </div>
+</div>

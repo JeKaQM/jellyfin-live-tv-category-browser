@@ -1,0 +1,109 @@
+openapi: 3.0.3
+info:
+  title: Jellyfin Live TV Categories
+  version: 0.1.0-prototype
+  description: ABI-pinned Jellyfin 10.11.11 category bridge contract.
+paths:
+  /LiveTvCategories:
+    get:
+      summary: List Live TV category summaries
+      security:
+        - jellyfinAuth: []
+      responses:
+        '200':
+          description: Dynamic categories derived from the current tuner channel cache.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LiveTvCategory'
+        '401':
+          description: Authentication required.
+        '403':
+          description: The user does not have Live TV access.
+      parameters:
+        - name: userId
+          in: query
+          description: Required only for administrator API-key smoke tests; normal user sessions are resolved from authentication.
+          schema:
+            type: string
+            format: uuid
+  /LiveTvCategories/{categoryId}/Channels:
+    get:
+      summary: Return one page of existing Jellyfin channels in a category
+      security:
+        - jellyfinAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startIndex
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: userId
+          in: query
+          description: Required only for administrator API-key smoke tests; normal user sessions are resolved from authentication.
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 250
+            default: 100
+        - name: addCurrentProgram
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: A page of standard Jellyfin BaseItemDto channel records.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelPage'
+        '404':
+          description: Unknown or expired category ID.
+components:
+  securitySchemes:
+    jellyfinAuth:
+      type: apiKey
+      in: header
+      name: X-Emby-Token
+  schemas:
+    LiveTvCategory:
+      type: object
+      required: [id, name, channelCount]
+      properties:
+        id:
+          type: string
+          description: Opaque deterministic ID; never the raw category name.
+        name:
+          type: string
+        channelCount:
+          type: integer
+          minimum: 0
+    ChannelPage:
+      type: object
+      required: [Items, StartIndex, TotalRecordCount]
+      properties:
+        Items:
+          type: array
+          items:
+            type: object
+            description: Standard Jellyfin BaseItemDto.
+        StartIndex:
+          type: integer
+          minimum: 0
+        TotalRecordCount:
+          type: integer
+          minimum: 0

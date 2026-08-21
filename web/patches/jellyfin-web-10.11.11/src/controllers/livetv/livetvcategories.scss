@@ -1,0 +1,187 @@
+.liveTvCategoryLanding {
+    padding-top: 1.2em;
+}
+
+.liveTvCategoryHero {
+    align-items: center;
+    background: linear-gradient(125deg, rgba(0, 164, 220, 0.24), rgba(112, 68, 184, 0.16));
+    border: 1px solid rgba(128, 128, 128, 0.26);
+    border-radius: 1.1em;
+    display: flex;
+    gap: 1.5em;
+    justify-content: space-between;
+    margin: 0 3.3% 1.25em;
+    min-height: 6em;
+    padding-bottom: 1.1em;
+    padding-top: 1.1em;
+}
+
+.liveTvCategoryHeroCopy {
+    min-width: 0;
+}
+
+.liveTvCategoryHeroTitle {
+    font-size: 1.7em;
+    line-height: 1.15;
+    margin: 0;
+}
+
+.liveTvCategoryHeroText {
+    margin: 0.4em 0 0;
+    opacity: 0.72;
+}
+
+.liveTvCategorySummary {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    flex: 0 0 auto;
+    font-weight: 600;
+    padding: 0.65em 1em;
+}
+
+.liveTvCategoryList {
+    display: grid;
+    gap: 1em;
+    grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
+    padding: 0 3.3% 2em;
+}
+
+.liveTvCategoryCard {
+    min-width: 0;
+}
+
+.liveTvCategoryButton {
+    align-items: center;
+    background: linear-gradient(145deg, rgba(128, 128, 128, 0.17), rgba(128, 128, 128, 0.07));
+    border: 1px solid rgba(128, 128, 128, 0.28);
+    border-radius: 1em;
+    box-shadow: 0 0.25em 0.9em rgba(0, 0, 0, 0.14);
+    color: inherit;
+    display: flex;
+    gap: 0.9em;
+    min-height: 6.4em;
+    overflow: hidden;
+    padding: 1em;
+    text-align: left;
+    text-transform: none;
+    transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    width: 100%;
+}
+
+.liveTvCategoryButton[data-category-id='all-channels'] {
+    background: linear-gradient(135deg, rgba(0, 164, 220, 0.3), rgba(112, 68, 184, 0.23));
+    border-color: rgba(0, 164, 220, 0.52);
+}
+
+.liveTvCategoryButton:hover,
+.liveTvCategoryButton:focus {
+    background-color: rgba(128, 128, 128, 0.22);
+    border-color: var(--theme-primary-color, #00a4dc);
+    box-shadow: 0 0.55em 1.4em rgba(0, 0, 0, 0.28);
+    outline: 0.18em solid var(--theme-primary-color, #00a4dc);
+    outline-offset: 0.12em;
+    transform: translateY(-0.16em) scale(1.015);
+}
+
+.liveTvCategoryButton:active {
+    box-shadow: 0 0.18em 0.65em rgba(0, 0, 0, 0.22);
+    transform: scale(0.985);
+}
+
+.liveTvCategoryIcon {
+    align-items: center;
+    align-self: stretch;
+    background: var(--theme-primary-color, #00a4dc);
+    border-radius: 0.72em;
+    color: #fff;
+    display: flex;
+    flex: 0 0 2.6em;
+    font-size: 1.45em;
+    justify-content: center;
+    min-height: 2.6em;
+}
+
+.liveTvCategoryCopy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+.liveTvCategoryCardName {
+    display: -webkit-box;
+    font-size: 1.04em;
+    font-weight: 700;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.25;
+    overflow: hidden;
+}
+
+.liveTvCategoryCardCount {
+    font-size: 0.88em;
+    margin-top: 0.42em;
+    opacity: 0.68;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveTvCategoryChevron {
+    flex: 0 0 auto;
+    opacity: 0.58;
+    transition: transform 160ms ease;
+}
+
+.liveTvCategoryButton:hover .liveTvCategoryChevron,
+.liveTvCategoryButton:focus .liveTvCategoryChevron {
+    opacity: 1;
+    transform: translateX(0.15em);
+}
+
+.liveTvCategoryStatus {
+    grid-column: 1 / -1;
+    padding: 0.5em 0 0.8em;
+}
+
+@media (max-width: 600px) {
+    .liveTvCategoryLanding {
+        padding-top: 0.65em;
+    }
+
+    .liveTvCategoryHero {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.8em;
+        margin-bottom: 0.9em;
+    }
+
+    .liveTvCategoryHeroTitle {
+        font-size: 1.4em;
+    }
+
+    .liveTvCategoryList {
+        gap: 0.75em;
+        grid-template-columns: repeat(auto-fill, minmax(13em, 1fr));
+    }
+
+    .liveTvCategoryButton {
+        min-height: 5.5em;
+        padding: 0.8em;
+    }
+
+    .liveTvCategoryIcon {
+        flex-basis: 2.25em;
+        font-size: 1.25em;
+        min-height: 2.25em;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .liveTvCategoryButton,
+    .liveTvCategoryChevron {
+        transition: none;
+    }
+}

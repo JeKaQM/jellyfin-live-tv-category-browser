@@ -1,0 +1,13 @@
+{
+  "name": "jellyfin-live-tv-category-browser-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test prototype/test/*.test.mjs scripts/test/*.test.mjs web/test/*.test.mjs",
+    "check": "node --check prototype/category-index.mjs && node --check web/src/category-service.mjs && node --check web/src/category-page.mjs && node --check web/patches/jellyfin-web-10.11.11/src/controllers/livetv/livetvsuggested.js && bash -n scripts/collect-discovery.sh scripts/configure-dispatcharr-jellyfin.sh scripts/build-plugin.sh scripts/build-catalog.sh scripts/build-release.sh scripts/prepare-jellyfin-web.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
