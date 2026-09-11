@@ -2,11 +2,11 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-web_source="${JELLYFIN_WEB_SOURCE:-${project_root}/build/jellyfin-web-10.11.11}"
+web_source="${JELLYFIN_WEB_SOURCE:-${project_root}/build/jellyfin-web-12.0}"
 
 if [[ -z "${PLUGIN_RELEASE_BASE_URL:-}" ]]; then
     echo "PLUGIN_RELEASE_BASE_URL is required." >&2
-    echo "Example: PLUGIN_RELEASE_BASE_URL=https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.2.0.0 $0" >&2
+    echo "Example: PLUGIN_RELEASE_BASE_URL=https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.3.0.0 $0" >&2
     exit 1
 fi
 
@@ -22,7 +22,13 @@ else
 fi
 
 node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
-if command -v npm >/dev/null 2>&1 && [[ "$node_major" =~ ^[0-9]+$ ]] && (( node_major >= 20 )); then
+npm_major=""
+if command -v npm >/dev/null 2>&1; then
+    npm_major="$(npm --version 2>/dev/null | cut -d. -f1 || true)"
+fi
+
+if [[ "$node_major" =~ ^[0-9]+$ && "$npm_major" =~ ^[0-9]+$ ]] \
+    && (( node_major >= 24 && npm_major >= 11 )); then
     npm --prefix "$web_source" ci
     npm --prefix "$web_source" run build:production
 elif command -v docker >/dev/null 2>&1; then
@@ -36,15 +42,15 @@ elif command -v docker >/dev/null 2>&1; then
         -e NPM_CONFIG_CACHE=/tmp/npm-cache \
         -v "${web_source}:/src" \
         -w /src \
-        node:20-bookworm \
+        node:24-bookworm \
         bash -lc 'npm ci && npm run build:production'
 else
-    echo "Node 20/npm or Docker is required to build Jellyfin Web." >&2
+    echo "Node 24 and npm 11, or Docker, are required to build Jellyfin Web." >&2
     exit 1
 fi
 
 dotnet_version="$(dotnet --version 2>/dev/null || true)"
-if [[ "$dotnet_version" == 9.* ]]; then
+if [[ "$dotnet_version" == 10.* ]]; then
     "${project_root}/scripts/build-plugin.sh"
 elif command -v docker >/dev/null 2>&1; then
     docker_command=(docker)
@@ -58,10 +64,10 @@ elif command -v docker >/dev/null 2>&1; then
         -e NUGET_PACKAGES=/tmp/dotnet-home/.nuget/packages \
         -v "${project_root}:/src" \
         -w /src \
-        mcr.microsoft.com/dotnet/sdk:9.0 \
+        mcr.microsoft.com/dotnet/sdk:10.0 \
         bash scripts/build-plugin.sh
 else
-    echo ".NET 9 or Docker is required to build the server plugin." >&2
+    echo ".NET 10 or Docker is required to build the server plugin." >&2
     exit 1
 fi
 

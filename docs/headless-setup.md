@@ -18,7 +18,7 @@ chmod +x scripts/configure-dispatcharr-jellyfin.sh
 ./scripts/configure-dispatcharr-jellyfin.sh
 ```
 
-The API-key prompt is hidden. With 27,740 channels, the Jellyfin guide refresh can take several minutes. The default wait is 15 minutes; use a longer limit if needed:
+The API-key prompt is hidden. Large channel lists can make the Jellyfin guide refresh take several minutes. The default wait is 15 minutes; use a longer limit if needed:
 
 ```bash
 JELLYFIN_WAIT_SECONDS=3600 ./scripts/configure-dispatcharr-jellyfin.sh
@@ -81,9 +81,9 @@ curl -fsSI --max-time 120 http://127.0.0.1:9191/output/epg
 
 Let the scheduled task finish, then rerun with a longer wait. Matching entries are detected and retained.
 
-### Count differs from 27,740
+### Count differs from the source playlist
 
-The guide may still be refreshing, or Jellyfin may merge/filter entries with duplicate channel identities. Wait for the task to become `Idle`, then check the count again.
+The guide may still be refreshing, or Jellyfin may merge/filter entries with duplicate channel identities. Wait for the task to become `Idle`, then check the count again. The repository's 27,740-channel figure is a scale-test fixture, not an expected count for every installation.
 
 ### Xtream warning appears
 

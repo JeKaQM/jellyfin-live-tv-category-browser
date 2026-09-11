@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
+using MediaBrowser.Common;
+using MediaBrowser.Common.Net;
+using MediaBrowser.Controller.Configuration;
 
 namespace Jellyfin.Plugin.LiveTvCategories.WebClient;
 
@@ -14,12 +17,20 @@ namespace Jellyfin.Plugin.LiveTvCategories.WebClient;
 /// </summary>
 public sealed class PluginWebClientStartupFilter : IStartupFilter
 {
-    private const string WebRequestPath = "/web";
+    private const string DefaultWebRequestPath = "/web";
+    private static readonly Version BundledWebServerVersion = new(12, 0, 0, 0);
+    private readonly IApplicationHost _applicationHost;
     private readonly ILogger<PluginWebClientStartupFilter> _logger;
+    private readonly IServerConfigurationManager _serverConfigurationManager;
 
-    public PluginWebClientStartupFilter(ILogger<PluginWebClientStartupFilter> logger)
+    public PluginWebClientStartupFilter(
+        ILogger<PluginWebClientStartupFilter> logger,
+        IServerConfigurationManager serverConfigurationManager,
+        IApplicationHost applicationHost)
     {
         _logger = logger;
+        _serverConfigurationManager = serverConfigurationManager;
+        _applicationHost = applicationHost;
     }
 
     public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
@@ -28,6 +39,16 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
 
         return app =>
         {
+            if (!CanServeBundledWeb(_applicationHost.ApplicationVersion))
+            {
+                _logger.LogWarning(
+                    "Live TV Categories bundled Web is disabled because it requires Jellyfin {ExpectedVersion}, but this server is {ActualVersion}",
+                    BundledWebServerVersion,
+                    _applicationHost.ApplicationVersion);
+                next(app);
+                return;
+            }
+
             var webRoot = ResolveBundledWebRoot();
             if (webRoot is null)
             {
@@ -38,10 +59,12 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
             }
 
             var fileProvider = new PhysicalFileProvider(webRoot);
+            var webRequestPath = WebRequestPathForBaseUrl(
+                _serverConfigurationManager.GetNetworkConfiguration().BaseUrl);
             var defaultFiles = new DefaultFilesOptions
             {
                 FileProvider = fileProvider,
-                RequestPath = new PathString(WebRequestPath)
+                RequestPath = new PathString(webRequestPath)
             };
             defaultFiles.DefaultFileNames.Clear();
             defaultFiles.DefaultFileNames.Add("index.html");
@@ -50,20 +73,38 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = fileProvider,
-                RequestPath = new PathString(WebRequestPath),
+                RequestPath = new PathString(webRequestPath),
                 ContentTypeProvider = new FileExtensionContentTypeProvider(),
                 OnPrepareResponse = context =>
                 {
-                    context.Context.Response.Headers["X-Live-TV-Categories-Web"] = "0.2.0.0";
+                    context.Context.Response.Headers["X-Live-TV-Categories-Web"] =
+                        typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "unknown";
                     context.Context.Response.Headers.CacheControl = CacheControlForFile(context.File.Name);
                 }
             });
 
             _logger.LogInformation(
-                "Live TV Categories is serving its bundled Jellyfin Web client from {WebRoot}",
-                webRoot);
+                "Live TV Categories is serving its bundled Jellyfin Web client from {WebRoot} at {WebRequestPath}",
+                webRoot,
+                webRequestPath);
             next(app);
         };
+    }
+
+    internal static bool CanServeBundledWeb(Version applicationVersion)
+    {
+        ArgumentNullException.ThrowIfNull(applicationVersion);
+        return applicationVersion == BundledWebServerVersion;
+    }
+
+    internal static string WebRequestPathForBaseUrl(string? baseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(baseUrl) || string.Equals(baseUrl.Trim(), "/", StringComparison.Ordinal))
+        {
+            return DefaultWebRequestPath;
+        }
+
+        return $"/{baseUrl.Trim().Trim('/')}{DefaultWebRequestPath}";
     }
 
     internal static string? ResolveBundledWebRoot()

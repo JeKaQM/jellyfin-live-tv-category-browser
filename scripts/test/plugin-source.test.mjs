@@ -22,11 +22,11 @@ test('plugin is ABI-pinned and keeps category browsing out of the playback path'
         source('Jellyfin.Plugin.LiveTvCategories/PluginServiceRegistrator.cs')
     ]);
 
-    assert.match(project, /Jellyfin\.Controller" Version="10\.11\.11"/);
-    assert.match(project, /Jellyfin\.Model" Version="10\.11\.11"/);
-    assert.match(project, /<TargetFramework>net9\.0<\/TargetFramework>/);
-    assert.match(manifest, /targetAbi: "10\.11\.11\.0"/);
-    assert.match(manifest, /version: "0\.2\.0\.0"/);
+    assert.match(project, /Jellyfin\.Controller" Version="12\.0\.0"/);
+    assert.match(project, /Jellyfin\.Model" Version="12\.0\.0"/);
+    assert.match(project, /<TargetFramework>net10\.0<\/TargetFramework>/);
+    assert.match(manifest, /targetAbi: "12\.0\.0\.0"/);
+    assert.match(manifest, /version: "0\.3\.0\.0"/);
     assert.match(plugin, /BasePlugin<PluginConfiguration>/);
     assert.match(plugin, /Plugin\(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer\)/);
     assert.match(plugin, /: base\(applicationPaths, xmlSerializer\)/);
@@ -34,11 +34,35 @@ test('plugin is ABI-pinned and keeps category browsing out of the playback path'
     assert.match(index, /host\.Type, "m3u"/);
     assert.match(index, /GetChannels\(true, cancellationToken\)/);
     assert.doesNotMatch(controller, /MediaSource|HttpClient|FFmpeg|Transcod/i);
+    assert.match(controller, /skipVisibilityCheck: true/);
     assert.doesNotMatch(index, /\.Path\b|HttpClient|FFmpeg|Transcod/i);
     assert.match(webClient, /UseStaticFiles/);
     assert.match(webClient, /Path\.Combine\(pluginDirectory, "web"\)/);
     assert.match(webClient, /X-Live-TV-Categories-Web/);
     assert.match(registrator, /AddSingleton<IStartupFilter, PluginWebClientStartupFilter>/);
+});
+
+test('build tooling is pinned to the Jellyfin 12 runtime', async () => {
+    const [globalJson, testProject, buildPlugin, buildRelease, workflow] = await Promise.all([
+        source('global.json'),
+        source('Jellyfin.Plugin.LiveTvCategories.Tests/Jellyfin.Plugin.LiveTvCategories.Tests.csproj'),
+        source('scripts/build-plugin.sh'),
+        source('scripts/build-release.sh'),
+        source('.github/workflows/release.yml')
+    ]);
+
+    assert.equal(JSON.parse(globalJson).sdk.version, '10.0.100');
+    assert.match(testProject, /<TargetFramework>net10\.0<\/TargetFramework>/);
+    assert.match(buildPlugin, /dotnet-sdk-10\.0/);
+    assert.match(buildRelease, /mcr\.microsoft\.com\/dotnet\/sdk:10\.0/);
+    assert.match(buildRelease, /node:24-bookworm/);
+    assert.match(workflow, /dotnet-version: '10\.0\.x'/);
+    assert.match(workflow, /node-version: '24\.x'/);
+    assert.match(workflow, /npm run build:check/);
+    assert.match(workflow, /npm run test/);
+    assert.match(workflow, /npm run lint/);
+    assert.match(workflow, /npm run stylelint/);
+    assert.match(workflow, /npm run escheck/);
 });
 
 test('C# tests import the xUnit API explicitly', async () => {

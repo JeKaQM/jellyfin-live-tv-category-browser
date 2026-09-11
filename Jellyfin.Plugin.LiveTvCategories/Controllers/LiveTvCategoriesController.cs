@@ -130,7 +130,11 @@ public sealed class LiveTvCategoriesController : ControllerBase
             EnableUserData = true,
             AddCurrentProgram = addCurrentProgram
         };
-        var dtos = _dtoService.GetBaseItemDtos(channelItems, dtoOptions, user);
+        var dtos = _dtoService.GetBaseItemDtos(
+            channelItems,
+            dtoOptions,
+            user,
+            skipVisibilityCheck: true);
         return new QueryResult<BaseItemDto>(page.StartIndex, page.TotalRecordCount, dtos);
     }
 

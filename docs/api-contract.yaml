@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Jellyfin Live TV Categories
-  version: 0.1.0-prototype
-  description: ABI-pinned Jellyfin 10.11.11 category bridge contract.
+  version: 0.3.0.0
+  description: ABI-pinned Jellyfin 12.0.0 category bridge contract.
 paths:
   /LiveTvCategories:
     get:
@@ -18,10 +18,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/LiveTvCategory'
+        '400':
+          description: A userId is required for administrator API-key authentication.
         '401':
           description: Authentication required.
         '403':
           description: The user does not have Live TV access.
+        '404':
+          description: The requested API-key user does not exist.
       parameters:
         - name: userId
           in: query
@@ -71,8 +75,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChannelPage'
+        '400':
+          description: Invalid paging input or a missing API-key userId.
+        '401':
+          description: Authentication required.
+        '403':
+          description: The user does not have Live TV access or requested another user's data.
         '404':
-          description: Unknown or expired category ID.
+          description: Unknown or expired category ID, or an API-key user that does not exist.
 components:
   securitySchemes:
     jellyfinAuth:

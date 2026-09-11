@@ -2,7 +2,6 @@ function createChevron(documentRef) {
     const chevron = documentRef.createElement('span');
     chevron.className = 'material-icons chevron_right';
     chevron.setAttribute('aria-hidden', 'true');
-    chevron.textContent = 'chevron_right';
     return chevron;
 }
 

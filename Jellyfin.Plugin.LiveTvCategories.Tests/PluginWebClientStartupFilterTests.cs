@@ -6,6 +6,27 @@ namespace Jellyfin.Plugin.LiveTvCategories.Tests;
 public sealed class PluginWebClientStartupFilterTests
 {
     [Theory]
+    [InlineData("12.0.0.0", true)]
+    [InlineData("11.0.0.0", false)]
+    [InlineData("12.0.1.0", false)]
+    [InlineData("13.0.0.0", false)]
+    public void BundledWebRequiresItsExactServerVersion(string version, bool expected)
+    {
+        Assert.Equal(expected, PluginWebClientStartupFilter.CanServeBundledWeb(Version.Parse(version)));
+    }
+
+    [Theory]
+    [InlineData(null, "/web")]
+    [InlineData("", "/web")]
+    [InlineData("/", "/web")]
+    [InlineData("/jellyfin", "/jellyfin/web")]
+    [InlineData(" media/ ", "/media/web")]
+    public void WebRequestPathIncludesConfiguredBaseUrl(string? baseUrl, string expected)
+    {
+        Assert.Equal(expected, PluginWebClientStartupFilter.WebRequestPathForBaseUrl(baseUrl));
+    }
+
+    [Theory]
     [InlineData("index.html")]
     [InlineData("INDEX.HTML")]
     [InlineData("config.json")]

@@ -6,10 +6,10 @@
 
 **Live TV Categories** is an unofficial Jellyfin plugin that adds category-first browsing to **Live TV → Programmes**. It derives categories from standard M3U `group-title` metadata while keeping Jellyfin's existing channel cards, playback, guide, recording, and DVR behavior.
 
-Current release: [v0.2.0.0](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/tag/v0.2.0.0)
+Published packages are available from [GitHub Releases](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest). Each plugin version is tied to one exact Jellyfin Server and Web version.
 
 > [!IMPORTANT]
-> Release `0.2.0.0` supports **Jellyfin Server and Web 10.11.11 only**. Do not install it on another Jellyfin version. This is a community release, so keep a configuration backup and rollback path available before installation.
+> Plugin `0.3.0.0` supports **Jellyfin Server and Web 12.0.0 only**. Plugin `0.2.0.0` remains the compatible line for **Jellyfin Server and Web 10.11.11**. Do not install either package on a different Jellyfin version.
 
 ## Features
 
@@ -19,25 +19,27 @@ Current release: [v0.2.0.0](https://github.com/JeKaQM/jellyfin-live-tv-category-
 - Applies Jellyfin authentication, Live TV permission checks, and per-user item visibility.
 - Uses opaque category IDs and a five-minute, atomically replaced server-side index.
 - Provides responsive category tiles with mouse, keyboard, and TV-remote focus states.
+- Integrates with both Jellyfin 12's modern Live TV view and its legacy Web/TV view.
+- Uses TV-safe category icons that do not render Material icon names as text on LG webOS clients.
+- Restores the selected category, page, and focus when returning from a channel instead of exiting the category.
 - Installs through Jellyfin's plugin catalog as one package containing the server plugin and matching Web client.
 - Includes automated coverage for Unicode, duplicate and uncategorised groups, paging, Web integration, packaging, and a 27,740-channel/321-category scale fixture.
 
 ## Compatibility
 
-| Target | Release 0.2.0.0 |
-| --- | --- |
-| Jellyfin Server `10.11.11` | Supported |
-| Jellyfin Web `10.11.11` in a browser | Supported |
-| Clients that load the server-hosted Web app | Expected to work; test each client |
-| Android TV / Fire TV native apps | Backend API only; no native category screen |
-| Swiftfin | Backend API only; no native category screen |
-| Any other Jellyfin Server/Web version | Not supported |
+| Plugin | Jellyfin Server and Web | Status |
+| --- | --- | --- |
+| `0.3.0.0` | `12.0.0` | Current release |
+| `0.2.0.0` | `10.11.11` | Published maintenance line for Jellyfin 10.11.11 |
+| Either version | Clients that load the server-hosted Web app | Category UI included; test the specific browser or TV client |
+| Either version | Android TV / Fire TV native apps and Swiftfin | Backend API only; no native category screen |
+| Any other combination | Any other Jellyfin Server/Web version | Not supported |
 
-The package serves a complete, version-matched Jellyfin Web build from the plugin's `/web` directory while the plugin is active. It does not overwrite Jellyfin's stock Web files. Removing the plugin and restarting Jellyfin restores the normal Web application.
+The package serves a complete, version-matched Jellyfin Web build from the plugin's `/web` directory while the plugin is active. Jellyfin's catalog treats `targetAbi` as a minimum version, so the plugin also checks the running server version and disables its bundled Web client unless it is the exact supported version. It does not overwrite Jellyfin's stock Web files. Removing the plugin and restarting Jellyfin restores the normal Web application.
 
 ## Requirements
 
-- Jellyfin Server `10.11.11` with administrator access for installation and restart.
+- Jellyfin Server and server-hosted Web `12.0.0` for plugin `0.3.0.0`, or `10.11.11` for plugin `0.2.0.0`, with administrator access for installation and restart.
 - An existing native Jellyfin M3U tuner whose playlist contains `group-title` metadata.
 - A completed Live TV guide refresh so the tuner channels are available to Jellyfin.
 
@@ -53,23 +55,26 @@ https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest/down
 
 1. Open **Dashboard → Plugins → Repositories** in Jellyfin.
 2. Select **Add**, name the repository `Live TV Categories`, and paste the manifest URL.
-3. Save, open **Catalog**, select **Live TV Categories**, and install version `0.2.0.0`.
-4. Restart Jellyfin when prompted.
-5. Hard-refresh the browser once to clear any cached Web shell or service worker.
-6. Open **Live TV → Programmes** and select a category.
+3. Save, open **Catalog**, and select **Live TV Categories**.
+4. On Jellyfin `12.0.0`, install `0.3.0.0`. On Jellyfin `10.11.11`, install `0.2.0.0`.
+5. Restart Jellyfin when prompted.
+6. Hard-refresh the browser once to clear any cached Web shell or service worker.
+7. Open **Live TV → Programmes** and select a category.
 
-Successful startup includes these log messages:
+On Jellyfin 12, successful startup includes these log messages:
 
 ```text
-Loaded plugin: Live TV Categories 0.2.0.0
+Loaded plugin: Live TV Categories 0.3.0.0
 Live TV Categories is serving its bundled Jellyfin Web client
 ```
+
+On Jellyfin 10.11.11, the first line ends in `0.2.0.0` instead. A version-mismatch warning means the bundled category UI was intentionally disabled; install the matching plugin release.
 
 For upgrades, verification, and rollback instructions, see the [catalog installation guide](docs/catalog-installation.md).
 
 ## Using the category browser
 
-The Programmes page displays **All Channels** followed by the categories discovered from the current M3U tuner data. Selecting a category loads one bounded page of standard Jellyfin channel items and renders them with Jellyfin's existing cards and actions.
+The Programmes page displays **All Channels** followed by the categories discovered from the current M3U tuner data. Selecting a category loads one bounded page of standard Jellyfin channel items and renders them with Jellyfin's existing cards and actions. Jellyfin 12's modern view keeps the category in the page URL, while the legacy Web/TV view retains equivalent in-page state. In both views, opening a channel and going back returns to the category and its prior position.
 
 Category data is cached for five minutes. After changing the source playlist, allow Jellyfin's guide refresh to finish and then allow the category cache to expire. If the category API is unavailable, **All Channels** remains available as a fallback.
 
@@ -124,7 +129,7 @@ Removing the plugin does not remove the M3U tuner, XMLTV guide, channels, record
 
 ## Build and test
 
-Development requires Bash, Git, Python 3, Node.js 20 or later, and the .NET 9 SDK. Docker can provide the Node and .NET build environments when they are not installed locally.
+Development of the Jellyfin 12 line requires Bash, Git, and Python 3 locally. Use Node.js 24 with npm 11 and the .NET 10 SDK, or let Docker provide either build environment. The older `v0.2.0.0` tag retains the Jellyfin 10.11.11/.NET 9/Node 20 build instructions for that release line.
 
 Run the source and integration tests:
 
@@ -144,7 +149,7 @@ Build the complete Web client, plugin ZIP, and repository manifest:
 
 ```bash
 chmod +x scripts/build-release.sh
-PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.2.0.0' \
+PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.3.0.0' \
 ./scripts/build-release.sh
 ```
 
@@ -169,4 +174,4 @@ Do not post API keys, M3U/XMLTV URLs, provider credentials, playlist contents, s
 
 Copyright © 2026 Jeno. This project is licensed under [GPL-2.0-only](LICENSE).
 
-The release bundles a modified Jellyfin Web `10.11.11` build under the same license. Exact upstream and corresponding-source details are provided in [NOTICE.md](NOTICE.md). Jellyfin is a trademark of the Jellyfin Project; this community plugin is not an official Jellyfin Project release.
+Plugin `0.3.0.0` bundles a modified Jellyfin Web `12.0.0` build under the same license; plugin `0.2.0.0` bundles Jellyfin Web `10.11.11`. Exact upstream and corresponding-source details are provided in [NOTICE.md](NOTICE.md). Jellyfin is a trademark of the Jellyfin Project; this community plugin is not an official Jellyfin Project release.

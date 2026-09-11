@@ -112,6 +112,7 @@ print(f"{channels}\t{len(groups)}\t{len(unique_extinf)}\t{len(unique_tvg_ids)}")
 PY
 
 IFS=$'\t' read -r exported_channels exported_groups unique_extinf_count unique_tvg_id_count < "$task_tmp_dir/m3u-summary.tsv"
+unique_tvg_id_count="${unique_tvg_id_count%$'\r'}"
 if (( exported_channels == 0 )); then
     echo "Dispatcharr's M3U contains no configured channels." >&2
     exit 1
@@ -186,6 +187,7 @@ print(f"{int(tuner_exists)}\t{int(epg_exists)}")
 PY
 
 IFS=$'\t' read -r tuner_exists epg_exists < "$task_tmp_dir/existing-state.tsv"
+epg_exists="${epg_exists%$'\r'}"
 
 if [[ "$tuner_exists" == "1" ]]; then
     echo "Dispatcharr M3U tuner already exists; leaving it unchanged."
@@ -281,6 +283,7 @@ for task in tasks if isinstance(tasks, list) else []:
         break
 PY
 )
+guide_task_state="${guide_task_state%$'\r'}"
 
 if [[ -n "$guide_task_id" ]]; then
     if [[ "${guide_task_state,,}" == "running" ]]; then

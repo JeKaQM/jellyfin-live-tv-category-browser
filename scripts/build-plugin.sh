@@ -6,14 +6,14 @@ configuration="${CONFIGURATION:-Release}"
 output_dir="${PLUGIN_OUTPUT_DIR:-${project_root}/artifacts/plugin}"
 
 if ! command -v dotnet >/dev/null 2>&1; then
-    echo "The .NET 9 SDK is required to build this Jellyfin 10.11.11 plugin." >&2
-    echo "Install dotnet-sdk-9.0, then rerun this command." >&2
+    echo "The .NET 10 SDK is required to build this Jellyfin 12 plugin." >&2
+    echo "Install dotnet-sdk-10.0, then rerun this command." >&2
     exit 1
 fi
 
 dotnet_version="$(dotnet --version)"
-if [[ "$dotnet_version" != 9.* ]]; then
-    echo "The .NET 9 SDK is required; found ${dotnet_version}." >&2
+if [[ "$dotnet_version" != 10.* ]]; then
+    echo "The .NET 10 SDK is required; found ${dotnet_version}." >&2
     exit 1
 fi
 

@@ -3,11 +3,12 @@ set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plugin_dll="${PLUGIN_DLL_PATH:-${project_root}/artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll}"
-web_dist="${JELLYFIN_WEB_DIST:-${project_root}/build/jellyfin-web-10.11.11/dist}"
+web_dist="${JELLYFIN_WEB_DIST:-${project_root}/build/jellyfin-web-12.0/dist}"
 catalog_dir="${CATALOG_OUTPUT_DIR:-${project_root}/artifacts/catalog}"
 release_base_url="${PLUGIN_RELEASE_BASE_URL:-}"
 build_timestamp="${BUILD_TIMESTAMP:-}"
 source_repository_url="${PLUGIN_SOURCE_URL:-}"
+python_command="${PYTHON:-python3}"
 
 if [[ -z "$source_repository_url" \
     && "$release_base_url" =~ ^(https://github\.com/[^/]+/[^/]+)/releases/download/[^/]+$ ]]; then
@@ -30,7 +31,7 @@ for required_file in "$plugin_dll" "${web_dist}/index.html" "${project_root}/LIC
     fi
 done
 
-version="$(python3 - "${project_root}/Directory.Build.props" <<'PY'
+version="$("$python_command" - "${project_root}/Directory.Build.props" <<'PY'
 import sys
 import xml.etree.ElementTree as ET
 
@@ -53,7 +54,7 @@ install -m 0644 "${project_root}/LICENSE" "${staging_dir}/LICENSE"
 install -m 0644 "${project_root}/NOTICE.md" "${staging_dir}/NOTICE.md"
 cp -a "${web_dist}/." "${staging_dir}/web/"
 
-python3 - "$staging_dir/SOURCE.txt" "$source_repository_url" "$version" <<'PY'
+"$python_command" - "$staging_dir/SOURCE.txt" "$source_repository_url" "$version" <<'PY'
 import pathlib
 import sys
 
@@ -65,13 +66,13 @@ target.write_text(
     "==============================\n\n"
     f"Plugin version: {version}\n"
     f"Project source: {source_url}\n"
-    "Jellyfin Web source: https://github.com/jellyfin/jellyfin-web/tree/v10.11.11\n"
-    "Jellyfin Web commit: 35c0793ece3adbd247eab290ae1effab851f3d37\n\n"
+    "Jellyfin Web source: https://github.com/jellyfin/jellyfin-web/tree/v12.0\n"
+    "Jellyfin Web commit: 0e83c6a724b31f3e9b5a499244331a288c060a4a\n\n"
     "The exact overlay and repeatable build scripts are in the project source.\n",
     encoding="utf-8")
 PY
 
-python3 - "$staging_dir" "$package_path" <<'PY'
+"$python_command" - "$staging_dir" "$package_path" <<'PY'
 import os
 import shutil
 import stat
@@ -93,7 +94,7 @@ with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compressleve
                 shutil.copyfileobj(source_file, target_file)
 PY
 
-python3 - "$package_path" "$catalog_dir/manifest.json" "$release_base_url" "$version" "$build_timestamp" <<'PY'
+"$python_command" - "$package_path" "$catalog_dir/manifest.json" "$release_base_url" "$version" "$build_timestamp" <<'PY'
 import datetime
 import hashlib
 import json
@@ -117,11 +118,18 @@ manifest = [{
     "category": "Live TV",
     "versions": [{
         "version": version,
-        "changelog": "UI-installable package with responsive category tiles and a bundled Jellyfin Web 10.11.11 client.",
-        "targetAbi": "10.11.11.0",
+        "changelog": "Jellyfin 12 compatibility with improved TV icon rendering and category-aware playback navigation.",
+        "targetAbi": "12.0.0.0",
         "sourceUrl": f"{base_url}/{package_path.name}",
         "checksum": checksum,
         "timestamp": timestamp,
+    }, {
+        "version": "0.2.0.0",
+        "changelog": "UI-installable package with responsive category tiles and a bundled Jellyfin Web 10.11.11 client.",
+        "targetAbi": "10.11.11.0",
+        "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.2.0.0/Jellyfin.Plugin.LiveTvCategories_0.2.0.0.zip",
+        "checksum": "1A87C1C87086002152D1A9DEB5A84487",
+        "timestamp": "2026-08-21T22:18:44+01:00",
     }],
 }]
 
