@@ -7,7 +7,7 @@ import test from 'node:test';
 const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const modernRoot = path.join(
     webRoot,
-    'patches/jellyfin-web-12.0/src/apps/modern/features/libraries');
+    'patches/jellyfin-web-12.1/src/apps/modern/features/libraries');
 
 const readModern = relativePath => readFile(path.join(modernRoot, relativePath), 'utf8');
 

@@ -2,10 +2,10 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-target_version="12.0.0"
-target_tag="v12.0"
-target_commit="0e83c6a724b31f3e9b5a499244331a288c060a4a"
-release_line="12.0"
+target_version="12.1.0"
+target_tag="v12.1"
+target_commit="fae41f33eb7cd636a9ef68984adb82bb247a6e1b"
+release_line="12.1"
 work_dir="${JELLYFIN_WEB_WORK_DIR:-${project_root}/build/jellyfin-web-${release_line}}"
 source_dir="${JELLYFIN_WEB_SOURCE:-$work_dir}"
 overlay_dir="${project_root}/web/patches/jellyfin-web-${release_line}"

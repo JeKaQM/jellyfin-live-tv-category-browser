@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Jellyfin Live TV Categories
-  version: 0.3.0.0
-  description: ABI-pinned Jellyfin 12.0.0 category bridge contract.
+  version: 0.4.0.0
+  description: ABI-pinned Jellyfin 12.1.0 category bridge contract.
 paths:
   /LiveTvCategories:
     get:

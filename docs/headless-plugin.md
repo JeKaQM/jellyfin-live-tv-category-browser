@@ -1,6 +1,6 @@
 # Headless category-bridge development runbook
 
-Plugin `0.3.0.0` targets Jellyfin Server `12.0.0` exactly and builds with the .NET 10 SDK. It does not change the tuner, XMLTV, playback, transcoding or DVR path. Jellyfin `10.11.11` installations must remain on plugin `0.2.0.0` and use the instructions from that release tag.
+Plugin `0.4.0.0` targets Jellyfin Server `12.1.0` exactly and builds with the .NET 10 SDK. It does not change the tuner, XMLTV, playback, transcoding or DVR path. Jellyfin `12.0.0` and `10.11.11` installations must remain on their matching earlier plugin release tags.
 
 For normal installation, use the catalog package in `docs/catalog-installation.md`. The steps below are the manual API-only development path; copying only the DLL does not install the bundled Web client.
 
@@ -52,13 +52,13 @@ Stop Jellyfin first, then create a dedicated versioned plugin directory and copy
 Native service:
 
 ```bash
-PLUGIN_ROOT=/actual/jellyfin/plugins; sudo systemctl stop jellyfin && sudo install -d -o jellyfin -g jellyfin "$PLUGIN_ROOT/Live TV Categories_0.3.0.0" && sudo install -m 0644 -o jellyfin -g jellyfin artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll "$PLUGIN_ROOT/Live TV Categories_0.3.0.0/" && sudo systemctl start jellyfin
+PLUGIN_ROOT=/actual/jellyfin/plugins; sudo systemctl stop jellyfin && sudo install -d -o jellyfin -g jellyfin "$PLUGIN_ROOT/Live TV Categories_0.4.0.0" && sudo install -m 0644 -o jellyfin -g jellyfin artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll "$PLUGIN_ROOT/Live TV Categories_0.4.0.0/" && sudo systemctl start jellyfin
 ```
 
 Docker:
 
 ```bash
-PLUGIN_ROOT=/actual/jellyfin/config/plugins; PLUGIN_DIR="$PLUGIN_ROOT/Live TV Categories_0.3.0.0"; JF_UID=$(sudo docker exec jellyfin id -u); JF_GID=$(sudo docker exec jellyfin id -g); sudo docker stop jellyfin && sudo install -d -m 0755 -o "$JF_UID" -g "$JF_GID" "$PLUGIN_DIR" && sudo install -m 0644 -o "$JF_UID" -g "$JF_GID" artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll "$PLUGIN_DIR/" && sudo docker start jellyfin
+PLUGIN_ROOT=/actual/jellyfin/config/plugins; PLUGIN_DIR="$PLUGIN_ROOT/Live TV Categories_0.4.0.0"; JF_UID=$(sudo docker exec jellyfin id -u); JF_GID=$(sudo docker exec jellyfin id -g); sudo docker stop jellyfin && sudo install -d -m 0755 -o "$JF_UID" -g "$JF_GID" "$PLUGIN_DIR" && sudo install -m 0644 -o "$JF_UID" -g "$JF_GID" artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll "$PLUGIN_DIR/" && sudo docker start jellyfin
 ```
 
 The ownership step is required when the container runs as a non-root user: Jellyfin creates `meta.json` in the plugin directory during first startup.
@@ -77,7 +77,7 @@ Docker:
 sudo docker logs jellyfin 2>&1 | grep -iE 'Live TV Categories|LiveTvCategories|error' | tail -n 100
 ```
 
-Also confirm **Dashboard -> Plugins** lists `Live TV Categories` version `0.3.0.0` with no restart pending.
+Also confirm **Dashboard -> Plugins** lists `Live TV Categories` version `0.4.0.0` with no restart pending.
 
 ## 5. Smoke-test the API
 

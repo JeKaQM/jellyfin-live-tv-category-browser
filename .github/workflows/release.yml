@@ -42,7 +42,7 @@ jobs:
           ./scripts/prepare-jellyfin-web.sh
 
       - name: Validate and build Jellyfin Web overlay
-        working-directory: build/jellyfin-web-12.0
+        working-directory: build/jellyfin-web-12.1
         run: |
           npm ci
           npm run build:check

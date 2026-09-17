@@ -1,8 +1,8 @@
 ---
 name: "Live TV Categories"
 guid: "a4b2fdc8-cb2a-463b-812a-16e9ea88e12a"
-version: "0.3.0.0"
-targetAbi: "12.0.0.0"
+version: "0.4.0.0"
+targetAbi: "12.1.0.0"
 framework: "net10.0"
 overview: "Dynamic category-first browsing for Jellyfin Live TV"
 description: >
@@ -15,4 +15,4 @@ owner: "jeno"
 artifacts:
 - "Jellyfin.Plugin.LiveTvCategories.dll"
 changelog: >
-  Adds Jellyfin 12 compatibility, improved TV icon rendering, and category-aware playback navigation.
+  Adds Jellyfin 12.1 compatibility while retaining TV-safe icons and category-aware playback navigation.

@@ -9,7 +9,7 @@
 Published packages are available from [GitHub Releases](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest). Each plugin version is tied to one exact Jellyfin Server and Web version.
 
 > [!IMPORTANT]
-> Plugin `0.3.0.0` supports **Jellyfin Server and Web 12.0.0 only**. Plugin `0.2.0.0` remains the compatible line for **Jellyfin Server and Web 10.11.11**. Do not install either package on a different Jellyfin version.
+> Plugin `0.4.0.0` supports **Jellyfin Server and Web 12.1.0 only**. Plugin `0.3.0.0` remains available for **12.0.0**, and plugin `0.2.0.0` remains available for **10.11.11**. Install the release that exactly matches both Server and Web.
 
 ## Features
 
@@ -29,17 +29,18 @@ Published packages are available from [GitHub Releases](https://github.com/JeKaQ
 
 | Plugin | Jellyfin Server and Web | Status |
 | --- | --- | --- |
-| `0.3.0.0` | `12.0.0` | Current release |
+| `0.4.0.0` | `12.1.0` | Current release |
+| `0.3.0.0` | `12.0.0` | Published maintenance line for Jellyfin 12.0.0 |
 | `0.2.0.0` | `10.11.11` | Published maintenance line for Jellyfin 10.11.11 |
-| Either version | Clients that load the server-hosted Web app | Category UI included; test the specific browser or TV client |
-| Either version | Android TV / Fire TV native apps and Swiftfin | Backend API only; no native category screen |
+| Matching version | Clients that load the server-hosted Web app | Category UI included; test the specific browser or TV client |
+| Matching version | Android TV / Fire TV native apps and Swiftfin | Backend API only; no native category screen |
 | Any other combination | Any other Jellyfin Server/Web version | Not supported |
 
 The package serves a complete, version-matched Jellyfin Web build from the plugin's `/web` directory while the plugin is active. Jellyfin's catalog treats `targetAbi` as a minimum version, so the plugin also checks the running server version and disables its bundled Web client unless it is the exact supported version. It does not overwrite Jellyfin's stock Web files. Removing the plugin and restarting Jellyfin restores the normal Web application.
 
 ## Requirements
 
-- Jellyfin Server and server-hosted Web `12.0.0` for plugin `0.3.0.0`, or `10.11.11` for plugin `0.2.0.0`, with administrator access for installation and restart.
+- Jellyfin Server and server-hosted Web `12.1.0` for plugin `0.4.0.0`, `12.0.0` for plugin `0.3.0.0`, or `10.11.11` for plugin `0.2.0.0`, with administrator access for installation and restart.
 - An existing native Jellyfin M3U tuner whose playlist contains `group-title` metadata.
 - A completed Live TV guide refresh so the tuner channels are available to Jellyfin.
 
@@ -56,19 +57,19 @@ https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest/down
 1. Open **Dashboard → Plugins → Repositories** in Jellyfin.
 2. Select **Add**, name the repository `Live TV Categories`, and paste the manifest URL.
 3. Save, open **Catalog**, and select **Live TV Categories**.
-4. On Jellyfin `12.0.0`, install `0.3.0.0`. On Jellyfin `10.11.11`, install `0.2.0.0`.
+4. Install `0.4.0.0` on Jellyfin `12.1.0`, `0.3.0.0` on `12.0.0`, or `0.2.0.0` on `10.11.11`.
 5. Restart Jellyfin when prompted.
 6. Hard-refresh the browser once to clear any cached Web shell or service worker.
 7. Open **Live TV → Programmes** and select a category.
 
-On Jellyfin 12, successful startup includes these log messages:
+On Jellyfin 12.1, successful startup includes these log messages:
 
 ```text
-Loaded plugin: Live TV Categories 0.3.0.0
+Loaded plugin: Live TV Categories 0.4.0.0
 Live TV Categories is serving its bundled Jellyfin Web client
 ```
 
-On Jellyfin 10.11.11, the first line ends in `0.2.0.0` instead. A version-mismatch warning means the bundled category UI was intentionally disabled; install the matching plugin release.
+On older supported Jellyfin versions, the first line ends in the matching plugin version shown above. A version-mismatch warning means the bundled category UI was intentionally disabled; install the matching plugin release.
 
 For upgrades, verification, and rollback instructions, see the [catalog installation guide](docs/catalog-installation.md).
 
@@ -149,7 +150,7 @@ Build the complete Web client, plugin ZIP, and repository manifest:
 
 ```bash
 chmod +x scripts/build-release.sh
-PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.3.0.0' \
+PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.4.0.0' \
 ./scripts/build-release.sh
 ```
 
@@ -174,4 +175,4 @@ Do not post API keys, M3U/XMLTV URLs, provider credentials, playlist contents, s
 
 Copyright © 2026 Jeno. This project is licensed under [GPL-2.0-only](LICENSE).
 
-Plugin `0.3.0.0` bundles a modified Jellyfin Web `12.0.0` build under the same license; plugin `0.2.0.0` bundles Jellyfin Web `10.11.11`. Exact upstream and corresponding-source details are provided in [NOTICE.md](NOTICE.md). Jellyfin is a trademark of the Jellyfin Project; this community plugin is not an official Jellyfin Project release.
+Plugin `0.4.0.0` bundles a modified Jellyfin Web `12.1.0` build under the same license; earlier tags retain the corresponding Jellyfin Web `12.0.0` and `10.11.11` sources. Exact upstream and corresponding-source details are provided in [NOTICE.md](NOTICE.md). Jellyfin is a trademark of the Jellyfin Project; this community plugin is not an official Jellyfin Project release.

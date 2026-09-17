@@ -7,7 +7,7 @@ import test from 'node:test';
 const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const overlayRoot = path.join(
     webRoot,
-    'patches/jellyfin-web-12.0/src/apps/legacy/controllers');
+    'patches/jellyfin-web-12.1/src/apps/legacy/controllers');
 const controllerPath = path.join(overlayRoot, 'livetv/livetvsuggested.js');
 const htmlPath = path.join(overlayRoot, 'livetv.html');
 const stylePath = path.join(overlayRoot, 'livetv/livetvcategories.scss');

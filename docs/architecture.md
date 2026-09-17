@@ -19,7 +19,7 @@ A client-only implementation would require both:
 1. a category summary without returning every channel; and
 2. a server-side group filter that returns only a selected group's channels.
 
-Jellyfin's M3U parser places `group-title` in tuner-side `ChannelInfo.ChannelGroup`, but that field is not persisted on `LiveTvChannel`. The public `/LiveTv/Channels` endpoint also has no group filter. Loading tens of thousands of channels in each browser is not acceptable. The bridge is rebuilt against each supported Jellyfin ABI: plugin `0.3.0.0` targets Jellyfin `12.0.0`, while plugin `0.2.0.0` remains pinned to Jellyfin `10.11.11`.
+Jellyfin's M3U parser places `group-title` in tuner-side `ChannelInfo.ChannelGroup`, but that field is not persisted on `LiveTvChannel`. The public `/LiveTv/Channels` endpoint also has no group filter. Loading tens of thousands of channels in each browser is not acceptable. The bridge is rebuilt against each supported Jellyfin ABI: plugin `0.4.0.0` targets Jellyfin `12.1.0`, while the catalog retains `0.3.0.0` for `12.0.0` and `0.2.0.0` for `10.11.11`.
 
 The minimal category bridge is therefore:
 
@@ -82,11 +82,11 @@ The existing top-level Live TV tabs remain unchanged. Only Programmes tab conten
 - on selection, request one page of that category's channels;
 - pass returned DTOs to existing Jellyfin rendering and item-action code.
 
-Jellyfin Web 12 has both a modern Live TV route and a legacy controller used by older layouts and TV clients. The `0.3.0.0` overlay integrates the category browser with both paths. Modern navigation records the selected category and page in the URL. The legacy path retains the same state in its page controller. Returning from channel details therefore restores the selected category, channel page, and focus instead of dropping back to the category landing page or leaving Live TV.
+Jellyfin Web 12 has both a modern Live TV route and a legacy controller used by older layouts and TV clients. The `0.4.0.0` overlay integrates the category browser with both paths. Modern navigation records the selected category and page in the URL. The legacy path retains the same state in its page controller. Returning from channel details therefore restores the selected category, channel page, and focus instead of dropping back to the category landing page or leaving Live TV.
 
 Category icons avoid ligature text in the legacy TV path, so older LG webOS browser engines do not display icon names or clipped glyphs. The modern view uses Jellyfin's normal vector icon components. Both paths retain visible remote-control and keyboard focus styles.
 
-The source under `web/src` is the isolated data/rendering proof of concept. The `0.3.0.0` production overlay is rebased onto the official Jellyfin Web `v12.0` tag; the preparation script verifies the exact upstream commit and protected source hashes before applying it. The `v0.2.0.0` source and release remain the corresponding Jellyfin Web `v10.11.11` implementation.
+The source under `web/src` is the isolated data/rendering proof of concept. The `0.4.0.0` production overlay is pinned to the official Jellyfin Web `v12.1` tag; the preparation script verifies the exact upstream commit and protected source hashes before applying it. Earlier release tags retain the corresponding Jellyfin Web `v12.0` and `v10.11.11` implementations.
 
 Each catalog ZIP contains the complete version-matched Web tree under `web/`. An ASP.NET Core startup filter registered by the plugin serves that directory at Jellyfin's normal `/web` request path before the stock static-file middleware. This turns the server API and matching Web client into one UI-installable unit while preserving the stock Web tree on disk. Jellyfin interprets catalog `targetAbi` as a minimum version, so the startup filter separately requires the exact server version before serving the pinned Web tree. Missing assets or a version mismatch degrade to API-only mode.
 

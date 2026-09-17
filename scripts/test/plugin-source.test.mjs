@@ -22,11 +22,11 @@ test('plugin is ABI-pinned and keeps category browsing out of the playback path'
         source('Jellyfin.Plugin.LiveTvCategories/PluginServiceRegistrator.cs')
     ]);
 
-    assert.match(project, /Jellyfin\.Controller" Version="12\.0\.0"/);
-    assert.match(project, /Jellyfin\.Model" Version="12\.0\.0"/);
+    assert.match(project, /Jellyfin\.Controller" Version="12\.1\.0"/);
+    assert.match(project, /Jellyfin\.Model" Version="12\.1\.0"/);
     assert.match(project, /<TargetFramework>net10\.0<\/TargetFramework>/);
-    assert.match(manifest, /targetAbi: "12\.0\.0\.0"/);
-    assert.match(manifest, /version: "0\.3\.0\.0"/);
+    assert.match(manifest, /targetAbi: "12\.1\.0\.0"/);
+    assert.match(manifest, /version: "0\.4\.0\.0"/);
     assert.match(plugin, /BasePlugin<PluginConfiguration>/);
     assert.match(plugin, /Plugin\(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer\)/);
     assert.match(plugin, /: base\(applicationPaths, xmlSerializer\)/);

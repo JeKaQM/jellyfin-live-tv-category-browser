@@ -18,7 +18,7 @@ namespace Jellyfin.Plugin.LiveTvCategories.WebClient;
 public sealed class PluginWebClientStartupFilter : IStartupFilter
 {
     private const string DefaultWebRequestPath = "/web";
-    private static readonly Version BundledWebServerVersion = new(12, 0, 0, 0);
+    private static readonly Version BundledWebServerVersion = new(12, 1, 0, 0);
     private readonly IApplicationHost _applicationHost;
     private readonly ILogger<PluginWebClientStartupFilter> _logger;
     private readonly IServerConfigurationManager _serverConfigurationManager;

@@ -3,7 +3,7 @@ set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plugin_dll="${PLUGIN_DLL_PATH:-${project_root}/artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll}"
-web_dist="${JELLYFIN_WEB_DIST:-${project_root}/build/jellyfin-web-12.0/dist}"
+web_dist="${JELLYFIN_WEB_DIST:-${project_root}/build/jellyfin-web-12.1/dist}"
 catalog_dir="${CATALOG_OUTPUT_DIR:-${project_root}/artifacts/catalog}"
 release_base_url="${PLUGIN_RELEASE_BASE_URL:-}"
 build_timestamp="${BUILD_TIMESTAMP:-}"
@@ -66,8 +66,8 @@ target.write_text(
     "==============================\n\n"
     f"Plugin version: {version}\n"
     f"Project source: {source_url}\n"
-    "Jellyfin Web source: https://github.com/jellyfin/jellyfin-web/tree/v12.0\n"
-    "Jellyfin Web commit: 0e83c6a724b31f3e9b5a499244331a288c060a4a\n\n"
+    "Jellyfin Web source: https://github.com/jellyfin/jellyfin-web/tree/v12.1\n"
+    "Jellyfin Web commit: fae41f33eb7cd636a9ef68984adb82bb247a6e1b\n\n"
     "The exact overlay and repeatable build scripts are in the project source.\n",
     encoding="utf-8")
 PY
@@ -118,11 +118,18 @@ manifest = [{
     "category": "Live TV",
     "versions": [{
         "version": version,
-        "changelog": "Jellyfin 12 compatibility with improved TV icon rendering and category-aware playback navigation.",
-        "targetAbi": "12.0.0.0",
+        "changelog": "Jellyfin 12.1 compatibility while retaining TV-safe icons and category-aware playback navigation.",
+        "targetAbi": "12.1.0.0",
         "sourceUrl": f"{base_url}/{package_path.name}",
         "checksum": checksum,
         "timestamp": timestamp,
+    }, {
+        "version": "0.3.0.0",
+        "changelog": "Jellyfin 12 compatibility with improved TV icon rendering and category-aware playback navigation.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.3.0.0/Jellyfin.Plugin.LiveTvCategories_0.3.0.0.zip",
+        "checksum": "2FA4C24399B9CC8BF587457EF69BF11B",
+        "timestamp": "2026-09-11T17:39:50+01:00",
     }, {
         "version": "0.2.0.0",
         "changelog": "UI-installable package with responsive category tiles and a bundled Jellyfin Web 10.11.11 client.",
