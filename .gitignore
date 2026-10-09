@@ -13,6 +13,8 @@ obj/
 .vscode/
 TestResults/
 coverage/
+playwright-report/
+test-results/
 *.log
 *.user
 *.suo

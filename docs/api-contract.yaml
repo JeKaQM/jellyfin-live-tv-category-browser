@@ -1,8 +1,11 @@
 openapi: 3.0.3
 info:
   title: Jellyfin Live TV Categories
-  version: 0.5.0.0
-  description: ABI-pinned Jellyfin 12.2.0 category bridge contract.
+  version: 0.6.0.0
+  description: >-
+    Category contract version 1. One minimum-12.0 ABI DLL is runtime-tested on
+    Jellyfin 12.0, 12.1 and 12.2. Bundled Web integration is exact-version
+    restricted to 12.2; future server compatibility is not guaranteed.
 paths:
   /LiveTvCategories:
     get:
@@ -26,6 +29,8 @@ paths:
           description: The user does not have Live TV access.
         '404':
           description: The requested API-key user does not exist.
+        '503':
+          $ref: '#/components/responses/SourceUnavailable'
       parameters:
         - name: userId
           in: query
@@ -83,7 +88,50 @@ paths:
           description: The user does not have Live TV access or requested another user's data.
         '404':
           description: Unknown or expired category ID, or an API-key user that does not exist.
+        '503':
+          $ref: '#/components/responses/SourceUnavailable'
+  /LiveTvCategories/Compatibility:
+    get:
+      summary: Report the stable category contract and tested integration state
+      security:
+        - jellyfinAuth: []
+      responses:
+        '200':
+          description: Safe compatibility metadata; no provider or user data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Compatibility'
+        '401':
+          description: Authentication required.
+        '403':
+          description: Live TV access required.
+  /LiveTvCategories/Diagnostics:
+    get:
+      summary: Report count-only source state to administrators
+      security:
+        - jellyfinAuth: []
+      responses:
+        '200':
+          description: Source counts and state without URLs, credentials or exception details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Diagnostics'
+        '401':
+          description: Authentication required.
+        '403':
+          description: Administrator elevation and Live TV access required.
 components:
+  responses:
+    SourceUnavailable:
+      description: All eligible tuner sources failed. Sanitized failure; retry later.
+      headers:
+        Retry-After:
+          description: Recommended retry delay in seconds, currently 30.
+          schema:
+            type: integer
+            example: 30
   securitySchemes:
     jellyfinAuth:
       type: apiKey
@@ -91,6 +139,67 @@ components:
       name: Authorization
       description: 'Use the full Jellyfin header value: MediaBrowser Token="<API key or session token>". Session clients may also include their Client, Device, DeviceId and Version metadata.'
   schemas:
+    Compatibility:
+      type: object
+      required: [apiContractVersion, pluginVersion, serverVersion, apiBaselineVersion, compiledApiVersion, apiCompatibilityFamily, apiTestedServerVersions, apiServerVersionTested, adapter, adapterState, bundledWebEnabled, bundledWebSupportedServerVersions, features]
+      properties:
+        apiContractVersion:
+          type: string
+          example: '1'
+        pluginVersion:
+          type: string
+        serverVersion:
+          type: string
+        apiBaselineVersion:
+          type: string
+          example: '12.0.0'
+        compiledApiVersion:
+          type: string
+        apiCompatibilityFamily:
+          type: string
+          description: Informational family only; not a future-version guarantee.
+          example: '12.x'
+        apiTestedServerVersions:
+          type: array
+          items:
+            type: string
+        apiServerVersionTested:
+          type: boolean
+        adapter:
+          type: string
+        adapterState:
+          type: string
+        bundledWebEnabled:
+          type: boolean
+        bundledWebSupportedServerVersions:
+          type: array
+          items:
+            type: string
+        features:
+          type: array
+          items:
+            type: string
+    Diagnostics:
+      type: object
+      description: Count-only snapshot of the last tuner read, not a connectivity probe.
+      required: [state, lastAttemptUtc, eligibleTunerCount, successfulTunerCount, failedTunerCount, matchedChannelCount, unmatchedChannelCount]
+      properties:
+        state:
+          type: string
+        lastAttemptUtc:
+          type: string
+          format: date-time
+          nullable: true
+        eligibleTunerCount:
+          type: integer
+        successfulTunerCount:
+          type: integer
+        failedTunerCount:
+          type: integer
+        matchedChannelCount:
+          type: integer
+        unmatchedChannelCount:
+          type: integer
     LiveTvCategory:
       type: object
       required: [id, name, channelCount]

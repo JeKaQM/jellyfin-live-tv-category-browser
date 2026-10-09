@@ -12,7 +12,7 @@ const modernRoot = path.join(
 const readModern = relativePath => readFile(path.join(modernRoot, relativePath), 'utf8');
 
 test('modern Programmes tab renders the category view without changing sibling tabs', async () => {
-    const pageTabs = await readModern('components/PageTabContent.tsx');
+    const pageTabs = await readFile(path.join(modernRoot, '../../../../../integration.patch'), 'utf8');
 
     assert.match(pageTabs, /currentTab\.viewType === LibraryTab\.Programs[\s\S]*<LiveTvCategoriesView/);
     assert.match(pageTabs, /LibraryTab\.Recordings \|\| currentTab\.viewType === LibraryTab\.Schedule/);
@@ -21,30 +21,32 @@ test('modern Programmes tab renders the category view without changing sibling t
 
 test('modern category navigation is URL-backed and restores focused channel context', async () => {
     const view = await readModern('components/LiveTvCategoriesView.tsx');
+    const navigation = await readModern('utils/liveTvCategoryNavigation.ts');
 
-    assert.match(view, /CATEGORY_ID_PARAM = 'categoryId'/);
-    assert.match(view, /CATEGORY_START_INDEX_PARAM = 'categoryStartIndex'/);
+    assert.match(navigation, /CATEGORY_ID_PARAM = 'categoryId'/);
+    assert.match(navigation, /CATEGORY_START_INDEX_PARAM = 'categoryStartIndex'/);
     assert.match(view, /setSearchParams\(nextParams, \{ state: nextState \}\)/);
     assert.match(view, /setSearchParams\(nextParams, \{[\s\S]*replace: true/);
     assert.match(view, /navigate\(-1\)/);
     assert.match(view, /CHANNEL_FOCUS_HISTORY_STATE/);
     assert.match(view, /onFocusCapture=\{rememberChannelFocus\}/);
-    assert.match(view, /element\.dataset\.id === channelId/);
+    assert.match(navigation, /element\.dataset\.id === channelId/);
     assert.match(view, /window\.history\.replaceState/);
     assert.match(view, /focusManager\.focus\(focusTarget\)/);
 });
 
 test('modern category API calls retain auth, cancellation and stock card behavior', async () => {
-    const [ view, api ] = await Promise.all([
+    const [ view, api, hooks ] = await Promise.all([
         readModern('components/LiveTvCategoriesView.tsx'),
+        readModern('utils/liveTvCategoriesApi.ts'),
         readModern('hooks/api/useLiveTvCategories.ts')
     ]);
 
     assert.match(api, /api\.configuration\.baseOptions/);
     assert.match(api, /signal/);
     assert.match(api, /encodeURIComponent\(categoryId\)/);
-    assert.match(api, /api\?\.basePath/);
-    assert.match(api, /currentApi\.user\?\.Id/);
+    assert.match(hooks, /api\?\.basePath/);
+    assert.match(hooks, /currentApi\.user\?\.Id/);
     assert.match(view, /<ItemsContainer/);
     assert.match(view, /<Cards items=\{items\} cardOptions=\{cardOptions\}/);
     assert.match(view, /showCurrentProgram: true/);

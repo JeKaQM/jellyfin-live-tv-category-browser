@@ -1,0 +1,58 @@
+diff --git a/src/apps/legacy/controllers/livetv/livetvsuggested.js b/src/apps/legacy/controllers/livetv/livetvsuggested.js
+--- a/src/apps/legacy/controllers/livetv/livetvsuggested.js
++++ b/src/apps/legacy/controllers/livetv/livetvsuggested.js
+@@ -286,7 +286,7 @@
+         // TODO int is a little hard to read
+         switch (index) {
+             case 0:
+-                depends = 'livetvsuggested';
++                depends = 'livetvcategories';
+                 break;
+ 
+             case 1:
+@@ -325,11 +325,7 @@
+                 tabContent = view.querySelector(`.pageTabContent[data-index="${index}"]`);
+ 
+-                if (index === 0) {
+-                    controller = self;
+-                } else {
+-                    controller = new ControllerFactory(view, params, tabContent);
+-                }
++                controller = new ControllerFactory(view, params, tabContent);
+ 
+                 tabControllers[index] = controller;
+ 
+                 if (controller.initTab) {
+@@ -355,7 +355,7 @@
+             initialTabIndex = null;
+ 
+             if (renderedTabs.indexOf(index) === -1) {
+-                if (index === 1) {
++                if (index === 0 || index === 1) {
+                     renderedTabs.push(index);
+                 }
+ 
+diff --git a/src/apps/modern/features/libraries/components/PageTabContent.tsx b/src/apps/modern/features/libraries/components/PageTabContent.tsx
+--- a/src/apps/modern/features/libraries/components/PageTabContent.tsx
++++ b/src/apps/modern/features/libraries/components/PageTabContent.tsx
+@@ -8,6 +8,7 @@
+ import GenresView from './GenresView';
+ import GuideView from './GuideView';
+ import ItemsView from './ItemsView';
++import LiveTvCategoriesView from './LiveTvCategoriesView';
+ import ProgramsSectionView from './ProgramsSectionView';
+ import SuggestionsSectionView from './SuggestionsSectionView';
+ import UpcomingView from './UpcomingView';
+@@ -33,7 +34,11 @@
+         );
+     }
+ 
+-    if (currentTab.viewType === LibraryTab.Programs || currentTab.viewType === LibraryTab.Recordings || currentTab.viewType === LibraryTab.Schedule) {
++    if (currentTab.viewType === LibraryTab.Programs) {
++        return <LiveTvCategoriesView />;
++    }
++
++    if (currentTab.viewType === LibraryTab.Recordings || currentTab.viewType === LibraryTab.Schedule) {
+         return (
+             <ProgramsSectionView
+                 sectionType={

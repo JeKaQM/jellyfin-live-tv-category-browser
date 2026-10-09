@@ -1,95 +1,66 @@
 # Architecture
 
-## Source decision
+## Boundaries
 
-Jellyfin consumes standard M3U and XMLTV inputs directly. Dispatcharr can provide those outputs, but the category browser does not require a specific IPTV-management application:
-
-```text
-Provider or M3U/XMLTV manager -> M3U + XMLTV -> Jellyfin -> clients
-```
-
-The repository's large-scale validation fixture contains 321 exact `group-title` values and 27,740 channels. Those numbers demonstrate scale rather than define an installation requirement; production counts depend on the configured tuner. Xtream Library is not an architectural dependency.
-
-The category browser never changes this media path. A channel selected from a category is still an ordinary Jellyfin `LiveTvChannel`, so playback, EPG, DVR, stream sharing and any Jellyfin transcoding decisions behave exactly as they do on the existing Channels page.
-
-## Why a bridge is still required
-
-A client-only implementation would require both:
-
-1. a category summary without returning every channel; and
-2. a server-side group filter that returns only a selected group's channels.
-
-Jellyfin's M3U parser places `group-title` in tuner-side `ChannelInfo.ChannelGroup`, but that field is not persisted on `LiveTvChannel`. The public `/LiveTv/Channels` endpoint also has no group filter. Loading tens of thousands of channels in each browser is not acceptable. The bridge is rebuilt against each supported Jellyfin ABI: plugin `0.5.0.0` targets Jellyfin `12.2.0`, while the catalog retains `0.4.0.0` for `12.1.0`, `0.3.0.0` for `12.0.0`, and `0.2.0.0` for `10.11.11`.
-
-The minimal category bridge is therefore:
+Live TV Categories is an organizational layer over native Jellyfin M3U channels. Dispatcharr can provide M3U/XMLTV, but no particular IPTV manager is required.
 
 ```text
-Jellyfin M3U tuner ChannelInfo cache
-  -> short-lived category index
-  -> category summary endpoint
-  -> selected-category endpoint
-  -> existing LiveTvChannel BaseItemDto
-  -> existing Jellyfin cards, playback and DVR actions
+M3U group-title → native tuner cache → compatibility adapter
+  → shared category metadata → current per-user visibility
+  → category summary or bounded channel page
+  → integrated cards OR independent browser → normal Jellyfin playback
 ```
 
-It is an organizational layer only. It does not handle stream URLs, proxy traffic, transcode media, store IPTV credentials or call the original provider.
+Streams, transcoding, guide refresh, recording and DVR stay under Jellyfin's control. The repository's 27,740-channel/321-category fixture demonstrates scale, not an installation requirement.
 
-## Category identity
+## Server compatibility adapter
 
-- Display each source/Jellyfin group exactly as supplied.
-- Treat null, empty and whitespace-only values as `Uncategorised`.
-- Use an opaque, deterministic SHA-256-based ID derived from a type prefix plus the exact group value.
-- Never place a raw group name directly in the route.
-- Merge exact duplicates while preserving Unicode, punctuation and case.
+`JellyfinLiveTvCompatibilityAdapter` contains Jellyfin-dependent authorization, current-user lookup, tuner reads, native channel visibility and DTO conversion. The category index and grouping core depend on the small source/adapter interfaces, not tuner implementations.
 
-## Initial request
+M3U `group-title` becomes tuner-side `ChannelInfo.ChannelGroup`; it is not persisted as a group on `LiveTvChannel`, and the ordinary channel endpoint does not expose a group filter. The adapter matches cached tuner channel identifiers to persisted Jellyfin channels so the scan remains server-side.
 
-`GET /LiveTvCategories` returns only `id`, `name` and `channelCount`. Even with 321 categories this is a small response and contains no channel cards or stream information.
+The `0.6.0.0` DLL is built against the minimum tested `12.0.0` packages and has passed real-server and real-browser checks unchanged on `12.0.0`, `12.1.0` and `12.2.0`. This is an explicit tested set, not a promise that a future Jellyfin ABI will load the DLL.
 
-The server builds the index from the existing tuner cache. The full channel scan remains server-side, is cached, and is not repeated by every browser or represented in the page DOM.
+## Identity and pagination
 
-## Category request
+Exact group values retain their original Unicode, punctuation and case. Null, empty or whitespace-only groups become `Uncategorised`. Exact duplicates are merged; channel IDs are deduplicated. Opaque deterministic SHA-256-based IDs include a type prefix so a real group named `Uncategorised` remains distinct from missing metadata.
 
-`GET /LiveTvCategories/{id}/Channels` accepts `startIndex` and `limit` and returns only the requested page. The bridge maps tuner identifiers to Jellyfin's existing `LiveTvChannel` items and returns normal `BaseItemDto` records with current-program data where supported.
+`GET /LiveTvCategories` returns only `id`, `name` and `channelCount`. `GET /LiveTvCategories/{id}/Channels` uses `startIndex`, a default `limit` of 100 and a maximum of 250. It returns existing Jellyfin `BaseItemDto` channel records, optionally with current-program data.
 
-The web client passes those DTOs to Jellyfin's existing channel-card and item-action code. This preserves logos, EPG, playback and recording actions.
+## Cache and authorization
 
-## Cache behavior
+Only server-wide derived metadata is cached: normally five minutes, or a shorter retry window after partial tuner failure. Snapshots are atomically replaced under one build lock. Credentials, stream URLs and per-user visibility projections are not cached by this index.
 
-The bridge:
+Every request resolves the current user and Live TV permission, reads current native channel visibility before and after a potentially slow metadata build, and derives fresh counts. DTO conversion rechecks access and visibility again. User sessions cannot select a different user's category view; administrator API keys must supply an explicit Live TV-enabled `userId`.
 
-- reuses Jellyfin's tuner cache rather than fetching the original IPTV provider;
-- cache the derived index for five minutes;
-- rebuild after expiry so Dispatcharr refreshes appear without a Jellyfin restart;
-- replace snapshots atomically;
-- avoid caching stream URLs or credentials;
-- cache a visibility projection per Jellyfin user for the same snapshot;
-- log only counts, never channel names, stream paths or provider details.
+A failed or internally timed-out tuner does not discard healthy tuner results. If all eligible sources fail, the API returns a sanitized, retryable 503 rather than an empty 200. Actual request cancellation remains cancellation. Logs and administrator diagnostics contain counts and states, not upstream exception details that might contain provider credentials.
 
-Runtime and scale tests cover a populated 27,740-channel, 321-category tuner fixture. A future task-completion hook can invalidate immediately after Refresh Guide if the five-minute bound is not sufficient.
+An empty healthy source or an installation with no supported M3U tuners is a legitimate empty category result. Guide changes become visible after the native refresh and metadata-cache expiry; immediate task-completion invalidation is not currently implemented.
 
-## Authorization
+## Independent browser
 
-Both category endpoints require Jellyfin authentication and the normal Live TV access policy. Browsing does not require administrator privileges. Responses never include `Path`, `MediaSources`, tuner settings, provider URLs, usernames, passwords or tokens.
+The four owned assets under `web/standalone` are published as the sibling `category-browser/` directory. Startup serves `/LiveTvCategories/ui/` before deciding whether bundled Jellyfin Web is compatible. The path includes a configured BaseUrl. `/LiveTvCategories/ui` redirects to its trailing-slash form so relative assets resolve correctly.
 
-## Web integration
+The independent browser has no Jellyfin Web imports, external font dependency or media player. Its dependency-free scripts are ES5-compatible. Category and channel text uses DOM text nodes; SVG paths are owned static data. The page signs in a normal user through the public authentication API and modern `Authorization: MediaBrowser ... Token="..."` header. Passwords are never persisted; its token is kept only in memory or its own tab-scoped session storage.
 
-The existing top-level Live TV tabs remain unchanged. Only Programmes tab content changes:
+Category channels and All channels are bounded to 100 per page. A tiny URL adapter opens standard Jellyfin channel details, leaving playback to stock Web. Stock Web may require a separate sign-in. Browser Back restores the previous category, page and channel focus; sign-out clears only this page's session and best-effort revokes its own token.
 
-- show `All Channels` first and route it to the existing Channels experience;
-- request and render all dynamic category summaries;
-- on failure, show a short error and retain `All Channels`;
-- on selection, request one page of that category's channels;
-- pass returned DTOs to existing Jellyfin rendering and item-action code.
+Static assets use no-store cache headers and a restrictive same-origin content security policy. Expired sessions return to login; permission failures never bypass server access checks. Category errors or an unsupported category contract retain the ordinary All channels and normal-Jellyfin fallback.
 
-Jellyfin Web 12 has both a modern Live TV route and a legacy controller used by older layouts and TV clients. The `0.5.0.0` overlay integrates the category browser with both paths. Modern navigation records the selected category and page in the URL. The legacy path retains the same state in its page controller. Returning from channel details therefore restores the selected category, channel page, and focus instead of dropping back to the category landing page or leaving Live TV.
+## Minimal Web integration
 
-Category icons avoid ligature text in the legacy TV path, so older LG webOS browser engines do not display icon names or clipped glyphs. The modern view uses Jellyfin's normal vector icon components. Both paths retain visible remote-control and keyboard focus styles.
+Only the Programmes content is replaced in Jellyfin Web `12.2.0`; the other top-level Live TV tabs and existing card/playback actions stay intact. Two small checked hooks connect upstream `livetvsuggested.js` and `PageTabContent.tsx` to owned category modules. Upstream legacy HTML is unchanged.
 
-The source under `web/src` is the isolated data/rendering proof of concept. The `0.5.0.0` production overlay is pinned to the official Jellyfin Web `v12.2` tag; the preparation script verifies the exact upstream commit and protected source hashes before applying it. Earlier release tags retain the corresponding Jellyfin Web `v12.1`, `v12.0`, and `v10.11.11` implementations.
+Owned modules isolate API calls, normalization, paging, navigation and SVG controls. Modern navigation records category/page state in the URL; legacy controllers preserve equivalent in-page state. Both restore category, page and focus after channel details.
 
-Each catalog ZIP contains the complete version-matched Web tree under `web/`. An ASP.NET Core startup filter registered by the plugin serves that directory at Jellyfin's normal `/web` request path before the stock static-file middleware. This turns the server API and matching Web client into one UI-installable unit while preserving the stock Web tree on disk. Jellyfin interprets catalog `targetAbi` as a minimum version, so the startup filter separately requires the exact server version before serving the pinned Web tree. Missing assets or a version mismatch degrade to API-only mode.
+`web/compatibility.json` is the central declaration for the exact tag/commit, protected source hashes, target ABI and version allowlist. Preparation verifies all managed input before writes, supports repeat runs and known prior overlays, rolls back incomplete writes and refuses unknown customizations.
 
-Web shell files are sent with no-cache headers, while fingerprinted assets are immutable. Every package remains deliberately pinned to its matching Server/Web version. A Jellyfin upgrade across these version lines requires the matching plugin release rather than reusing the previous Web build.
+Catalog ZIPs still include the complete pinned Web build under `web/` for seamless integration on its tested version. Jellyfin treats catalog `targetAbi` as a minimum, so a separate strict startup guard prevents this full client from being served on `12.0.0`, `12.1.0` or an unknown version. Missing Web files also leave stock Web active. The independent browser remains separate from that guard.
 
-This integration affects only clients that load the server-hosted Web application. Native Android TV/Fire TV and Swiftfin clients can reuse the category API, but require separate category views and release cycles.
+## Health and continuous checks
+
+`GET /LiveTvCategories/Compatibility` requires Live TV authentication and returns the API contract, safe adapter state and integration compatibility. `/Diagnostics` additionally requires administrator elevation and exposes count-only source details.
+
+Compatibility CI tests declared stable servers and the latest stable release with the same minimum-ABI DLL, real M3U fixture and browser flows. Master canary builds detect upstream drift without promoting a version to the support allowlist. Web compilation, checked-patch preparation, browser interactions, permissions, packaging and ES5 checks complement server tests.
+
+Automated checks do not substitute for physical LG/webOS testing. Native Android TV/Fire TV and Swiftfin clients need their own category implementation; this plugin does not replace their interfaces.

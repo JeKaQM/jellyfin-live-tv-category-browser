@@ -1,89 +1,79 @@
-# Headless Jellyfin Web 12.2.0 runbook
+# Jellyfin Web integration and independent browser
 
-The prepared `0.5.0.0` overlay changes only **Live TV -> Programmes** in Jellyfin Web `12.2.0`. It integrates with both the modern Live TV view and the legacy Web/TV controller. Each view requests the small `/LiveTvCategories` summary, shows `All Channels` plus every dynamic group, and requests one bounded page only after a category is selected. Channel cards still use Jellyfin Web's existing card components, so normal item actions and playback are preserved.
+Plugin `0.6.0.0` has two interfaces:
 
-The category tiles include counts, responsive sizing, and visible keyboard/remote focus. The legacy path uses class-based icon glyphs instead of icon-name ligature text for compatibility with older LG webOS browser engines. Both integrations preserve the selected category, page, and focus when channel details closes.
+- The independent page at `/LiveTvCategories/ui/` works with the tested backend on Jellyfin `12.0.0`, `12.1.0` and `12.2.0` without replacing stock Web.
+- The bundled **Live TV → Programmes** integration targets Jellyfin Web `12.2.0` only and is served only on the exact supported server version.
 
-Do not start this step until the Jellyfin 12 server bridge is installed and its API smoke test reports the category and represented-channel counts expected for your tuner. For Jellyfin `10.11.11`, use plugin release/tag `v0.2.0.0`; do not apply this Jellyfin 12 overlay.
+Both leave channel playback to Jellyfin. Use the [catalog package](catalog-installation.md) for production rather than replacing system Web files.
 
-## 1. Identify the deployed Web package
+## Independent page
 
-Run this on the Jellyfin host:
+`web/standalone/{index.html,browser-core.js,app.js,app.css}` is published as `category-browser/` beside the DLL. These assets have no Jellyfin Web imports, runtime dependencies or external fonts; JavaScript remains ES5-compatible. The server adds a trailing slash to `/LiveTvCategories/ui` and serves stable asset names with no-store headers and a same-origin content security policy.
 
-```bash
-dpkg-query -W -f='${Package} ${Version}\n' jellyfin-web 2>/dev/null || rpm -q jellyfin-web 2>/dev/null || true; sudo docker inspect jellyfin --format 'image={{.Config.Image}}' 2>/dev/null || true
-```
+Normal-user sign-in uses Jellyfin's public authentication endpoint and supported Authorization header. Passwords are never saved. Only the page's own token and navigation state are kept in memory or tab-scoped session storage. All server/category/channel text is rendered as text, not HTML.
 
-Proceed with this overlay only when the package or official container image is paired with Jellyfin Web `12.2.0`. If it reports another version, stop; the guard intentionally does not patch it.
+Channels open stock Web's details route, so Web may require a separate sign-in. Browser Back restores category/page/focus. Expired sessions return to login. Permission failures remain denied; category errors retain All channels and the normal-Jellyfin link.
 
-## 2. Prepare exact source
+## Prepare the exact Web source
 
-Install Bash, Git, and Python 3 locally, then run this from the project directory:
-
-```bash
-chmod +x scripts/prepare-jellyfin-web.sh
-./scripts/prepare-jellyfin-web.sh
-```
-
-The script clones the official `v12.2` tag at commit `61b1f890365ad15138e943e694af723c1d47df2a` into `build/jellyfin-web-12.2` unless `JELLYFIN_WEB_SOURCE` points to an existing checkout. Before copying the overlay, it verifies the package version, commit, and protected upstream source hashes. The protected Live TV files are unchanged from 12.1, while the build includes 12.2's upstream item-details security fixes, gamepad navigation improvements, and playback updates.
-
-| File | Expected upstream blob |
-| --- | --- |
-| `src/apps/legacy/controllers/livetv/livetvsuggested.js` | `49699fd4f2588f0be26f5f421e3ee44bddaf6f09` |
-| `src/apps/legacy/controllers/livetv.html` | `365c5b4415c55f50eccab101bfd483390ab90eab` |
-| `src/apps/modern/features/libraries/components/PageTabContent.tsx` | `430e09f6737f18ed1c06210a18cf62d556717922` |
-
-The overlay also adds category-view and styling files to the legacy and modern source trees. There are no upstream files at those overlay-only paths. The preparation script refuses unexpected or already-customized protected source rather than overwriting it silently.
-
-## 3. Build
-
-With Node 24 and npm 11 or later installed:
+Use Node 24, Bash and Git; Python is not required for preparation:
 
 ```bash
-BUILD_WEB=1 ./scripts/prepare-jellyfin-web.sh
+bash scripts/prepare-jellyfin-web.sh
 ```
 
-Or build the prepared checkout in Docker (Bash, Git, and Python 3 are still used locally by the preparation step):
+`web/compatibility.json` declares the current exact tag, commit, protected hashes and allowlist. The preparer clones `v12.2` at `61b1f890365ad15138e943e694af723c1d47df2a` into `build/jellyfin-web-12.2`, or checks the checkout supplied through `JELLYFIN_WEB_SOURCE`.
+
+Only two upstream files receive small checked integration hooks:
+
+- `src/apps/legacy/controllers/livetv/livetvsuggested.js`.
+- `src/apps/modern/features/libraries/components/PageTabContent.tsx`.
+
+The legacy `livetv.html` stays unchanged and is fingerprinted as a protected input. Owned category modules contain the data adapter, normalization, navigation, rendering and SVG icon paths. Upstream card and playback code stays in charge of channel actions.
+
+Preparation validates every managed path before writes, accepts repeat runs and known earlier overlays, refuses unknown customizations and rolls back incomplete writes. Do not delete those protections merely to make an upstream upgrade build: inspect the changed contract and update the adapter or checked patch.
+
+## Build and verify
+
+With Node 24 and npm 11:
 
 ```bash
-sudo docker run --rm --user "$(id -u):$(id -g)" -e NPM_CONFIG_CACHE=/tmp/npm-cache -v "$PWD/build/jellyfin-web-12.2:/src" -w /src node:24-bookworm bash -lc 'npm ci && npm run build:production'
+BUILD_WEB=1 bash scripts/prepare-jellyfin-web.sh
 ```
 
-The compiled Web tree is created under:
+Or build the already-prepared source in Docker:
 
-```text
-build/jellyfin-web-12.2/dist
+```bash
+sudo docker run --rm --user "$(id -u):$(id -g)" \
+  -e NPM_CONFIG_CACHE=/tmp/npm-cache -v "$PWD/build/jellyfin-web-12.2:/src" -w /src \
+  node:24-bookworm bash -lc 'npm ci && npm run build:production'
 ```
 
-## 4. Deployment choices
+The output is `build/jellyfin-web-12.2/dist`. Before a release, run the upstream type, unit, lint, style and ES5 checks as well as browser tests; a production build alone is insufficient.
 
-The preferred production path is the UI-installable catalog ZIP described in `docs/catalog-installation.md`. It bundles this compiled `dist` tree alongside the server plugin and serves it without replacing the official Jellyfin files.
+```bash
+npm ci
+npx playwright install chromium
+npm run test:browser
+```
 
-The bind-mount method below is retained as a development and recovery path.
+Scheduled compatibility checks cover stable server versions and the latest stable release; upstream master canaries detect drift without enabling an untested integration. A green canary is evidence to review, not an automatic compatibility declaration.
 
-The manual deployment method depends on whether Jellyfin is a native package, an official container, or a custom Compose stack. Do not copy `dist` over a guessed path.
+## Deployment and recovery
 
-Before deployment, record:
+The catalog ZIP contains the DLL, independent-browser assets, full Web build and compatibility declaration. The startup filter serves the independent route first, then serves bundled Web only when the strict allowlist permits it. On older tested servers, a missing Web tree or an unknown server version, stock Web remains active.
 
-- the native `jellyfin-web` directory, or the container path serving Web assets;
-- the host bind mount or image definition that owns that path;
-- a recoverable backup/rollback location;
-- the exact container/service name.
+Manual full-Web bind mounts are a development/recovery option only. Record the exact native asset directory or container mount, service identity and recoverable backup before changing deployment. Never copy into a guessed path. A read-only bind mount or custom image is preferable to copying files into a running container.
 
-For a container, prefer a custom image or a read-only bind mount of the built `dist` directory. Copying files directly into a running container is lost when the container is recreated.
+After deployment, restart and hard-refresh. Confirm:
 
-## 5. Web acceptance checks
+1. Independent sign-in, category listing and bounded paging work under the configured BaseUrl.
+2. Channel handoff uses normal Jellyfin and Back restores category/page/focus.
+3. Sign-out clears the independent session; a 401 returns to login without stale channel content.
+4. On 12.2.0, Programmes uses the category summaries while all other Live TV tabs remain unchanged.
+5. Integrated channel logos, programme details, playback and recording actions remain stock Jellyfin behavior.
+6. Owned category and paging/back controls show SVG icons, not font ligature names.
+7. Failed category requests retain ordinary browsing; permission failures are not bypassed.
 
-After deployment and a hard browser refresh:
-
-1. The existing top tabs remain: Programmes, Guide, Channels, Recordings, Schedule and Series.
-2. Programmes initially requests `/LiveTvCategories`, not `/LiveTv/Channels` or the full channel collection.
-3. `All Channels` switches to the unchanged Channels tab.
-4. A group opens only its own paged channels.
-5. Logos, current-program text, details menu and playback work through the existing card implementation.
-6. Open a channel, then go back: the same category, page, and focused channel are restored rather than exiting the category.
-7. The visible category-back action returns to the category list.
-8. On an LG TV, category and chevron icons render as icons rather than visible names, missing glyphs, or stretched tiles.
-9. An API failure still leaves `All Channels` available.
-
-The overlay is Web-only. It is shared by clients that load the server-hosted Web application, but Android TV/Fire TV, Swiftfin and other native clients require separate client work.
+Physical LG/webOS acceptance testing is still required. ES5 checks and Chromium automation cannot guarantee behavior on every TV engine. Android TV/Fire TV and Swiftfin native screens need separate client work.

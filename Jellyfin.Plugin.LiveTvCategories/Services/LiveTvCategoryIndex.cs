@@ -1,113 +1,67 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Jellyfin.Data.Enums;
-using Jellyfin.Database.Implementations.Entities;
-using MediaBrowser.Controller.Dto;
-using MediaBrowser.Controller.LiveTv;
-using MediaBrowser.Model.LiveTv;
-using Microsoft.Extensions.Logging;
-
 namespace Jellyfin.Plugin.LiveTvCategories.Services;
 
+/// <summary>
+/// Caches only server-wide category metadata. User visibility is intentionally read
+/// on every request, so policy and channel changes cannot leave stale cached counts.
+/// </summary>
 internal sealed class LiveTvCategoryIndex : ILiveTvCategoryIndex, IDisposable
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
-    private readonly ITunerHostManager _tunerHostManager;
-    private readonly ILiveTvManager _liveTvManager;
-    private readonly ILogger<LiveTvCategoryIndex> _logger;
+    private static readonly TimeSpan DegradedCacheDuration = TimeSpan.FromSeconds(30);
+    private readonly ILiveTvCategorySource _source;
     private readonly SemaphoreSlim _buildLock = new(1, 1);
-    private readonly ConcurrentDictionary<Guid, UserCategorySnapshot> _userViews = new();
-    private CategorySnapshot? _snapshot;
+    private CachedSnapshot? _snapshot;
 
-    public LiveTvCategoryIndex(
-        ITunerHostManager tunerHostManager,
-        ILiveTvManager liveTvManager,
-        ILogger<LiveTvCategoryIndex> logger)
+    public LiveTvCategoryIndex(ILiveTvCategorySource source)
     {
-        _tunerHostManager = tunerHostManager;
-        _liveTvManager = liveTvManager;
-        _logger = logger;
+        _source = source;
     }
 
-    public async Task<UserCategorySnapshot> GetForUserAsync(User user, CancellationToken cancellationToken)
+    public async Task<UserCategorySnapshot> GetForUserAsync(Guid userId, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(user);
-
-        var snapshot = await GetSnapshotAsync(cancellationToken).ConfigureAwait(false);
-        if (_userViews.TryGetValue(user.Id, out var cached) && ReferenceEquals(cached.Source, snapshot))
+        if (userId == Guid.Empty)
         {
-            return cached;
+            throw new ArgumentException("A user ID is required.", nameof(userId));
         }
 
-        var options = CreateIndexDtoOptions();
-        var visibleChannels = _liveTvManager.GetInternalChannels(
-            new LiveTvChannelQuery
-            {
-                UserId = user.Id,
-                EnableUserData = false,
-                AddCurrentProgram = false,
-                SortBy = Array.Empty<ItemSortBy>()
-            },
-            options,
-            cancellationToken);
-        var visibleIds = visibleChannels.Items
-            .OfType<LiveTvChannel>()
-            .Select(channel => channel.Id)
-            .ToHashSet();
-
-        var view = snapshot.CreateUserView(visibleIds);
-        _userViews[user.Id] = view;
-        return view;
+        cancellationToken.ThrowIfCancellationRequested();
+        // Check visibility before reading a tuner or shared metadata cache. The adapter
+        // also rechecks the current user policy, rather than trusting a session snapshot.
+        _source.GetVisibleChannelIds(userId, cancellationToken);
+        var snapshot = await GetSnapshotAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        var visibleIds = _source.GetVisibleChannelIds(userId, cancellationToken);
+        return snapshot.CreateUserView(visibleIds);
     }
 
-    public void Invalidate()
-    {
-        Volatile.Write(ref _snapshot, null);
-        _userViews.Clear();
-    }
+    public void Invalidate() => Volatile.Write(ref _snapshot, null);
 
-    public void Dispose()
-    {
-        _buildLock.Dispose();
-    }
-
-    private static DtoOptions CreateIndexDtoOptions()
-    {
-        return new DtoOptions(false)
-        {
-            EnableImages = false,
-            EnableUserData = false,
-            AddCurrentProgram = false
-        };
-    }
+    public void Dispose() => _buildLock.Dispose();
 
     private async Task<CategorySnapshot> GetSnapshotAsync(CancellationToken cancellationToken)
     {
-        var now = DateTimeOffset.UtcNow;
         var cached = Volatile.Read(ref _snapshot);
-        if (cached is not null && now - cached.GeneratedAtUtc < CacheDuration)
+        if (cached is not null && DateTimeOffset.UtcNow < cached.ExpiresAtUtc)
         {
-            return cached;
+            return cached.Snapshot;
         }
 
         await _buildLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             cached = Volatile.Read(ref _snapshot);
-            now = DateTimeOffset.UtcNow;
-            if (cached is not null && now - cached.GeneratedAtUtc < CacheDuration)
+            if (cached is not null && DateTimeOffset.UtcNow < cached.ExpiresAtUtc)
             {
-                return cached;
+                return cached.Snapshot;
             }
 
-            var rebuilt = await BuildSnapshotAsync(now, cancellationToken).ConfigureAwait(false);
-            Volatile.Write(ref _snapshot, rebuilt);
-            _userViews.Clear();
-            return rebuilt;
+            var source = await _source.ReadCategoriesAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            var now = DateTimeOffset.UtcNow;
+            var snapshot = CategorySnapshotBuilder.Build(source.Channels, now, source.UnmatchedChannelCount);
+            var duration = source.FailedTunerCount > 0 ? DegradedCacheDuration : CacheDuration;
+            Volatile.Write(ref _snapshot, new CachedSnapshot(snapshot, now + duration));
+            return snapshot;
         }
         finally
         {
@@ -115,55 +69,5 @@ internal sealed class LiveTvCategoryIndex : ILiveTvCategoryIndex, IDisposable
         }
     }
 
-    private async Task<CategorySnapshot> BuildSnapshotAsync(DateTimeOffset generatedAtUtc, CancellationToken cancellationToken)
-    {
-        var persistedChannels = _liveTvManager.GetInternalChannels(
-            new LiveTvChannelQuery
-            {
-                EnableUserData = false,
-                AddCurrentProgram = false,
-                SortBy = Array.Empty<ItemSortBy>()
-            },
-            CreateIndexDtoOptions(),
-            cancellationToken);
-
-        var persistedByExternalId = new Dictionary<string, LiveTvChannel>(StringComparer.Ordinal);
-        foreach (var channel in persistedChannels.Items.OfType<LiveTvChannel>())
-        {
-            if (!string.IsNullOrEmpty(channel.ExternalId))
-            {
-                persistedByExternalId.TryAdd(channel.ExternalId, channel);
-            }
-        }
-
-        var indexed = new List<IndexedChannel>(persistedByExternalId.Count);
-        var matchedIds = new HashSet<Guid>();
-        var unmatched = 0;
-
-        foreach (var tunerHost in _tunerHostManager.TunerHosts.Where(
-                     host => host.IsSupported && string.Equals(host.Type, "m3u", StringComparison.OrdinalIgnoreCase)))
-        {
-            var tunerChannels = await tunerHost.GetChannels(true, cancellationToken).ConfigureAwait(false);
-            foreach (var tunerChannel in tunerChannels)
-            {
-                if (string.IsNullOrEmpty(tunerChannel.Id)
-                    || !persistedByExternalId.TryGetValue(tunerChannel.Id, out var persisted)
-                    || !matchedIds.Add(persisted.Id))
-                {
-                    unmatched++;
-                    continue;
-                }
-
-                indexed.Add(new IndexedChannel(persisted.Id, tunerChannel.ChannelGroup));
-            }
-        }
-
-        var snapshot = CategorySnapshotBuilder.Build(indexed, generatedAtUtc, unmatched);
-        _logger.LogInformation(
-            "Built Live TV category index with {CategoryCount} categories, {ChannelCount} matched channels and {UnmatchedCount} unmatched tuner records",
-            snapshot.CreateUserView(matchedIds).Categories.Count,
-            snapshot.TotalChannelCount,
-            snapshot.UnmatchedChannelCount);
-        return snapshot;
-    }
+    private sealed record CachedSnapshot(CategorySnapshot Snapshot, DateTimeOffset ExpiresAtUtc);
 }

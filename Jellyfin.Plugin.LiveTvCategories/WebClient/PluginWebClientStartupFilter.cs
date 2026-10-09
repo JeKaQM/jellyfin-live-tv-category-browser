@@ -18,7 +18,6 @@ namespace Jellyfin.Plugin.LiveTvCategories.WebClient;
 public sealed class PluginWebClientStartupFilter : IStartupFilter
 {
     private const string DefaultWebRequestPath = "/web";
-    private static readonly Version BundledWebServerVersion = new(12, 2, 0, 0);
     private readonly IApplicationHost _applicationHost;
     private readonly ILogger<PluginWebClientStartupFilter> _logger;
     private readonly IServerConfigurationManager _serverConfigurationManager;
@@ -39,11 +38,12 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
 
         return app =>
         {
+            ConfigureIndependentUi(app);
             if (!CanServeBundledWeb(_applicationHost.ApplicationVersion))
             {
                 _logger.LogWarning(
                     "Live TV Categories bundled Web is disabled because it requires Jellyfin {ExpectedVersion}, but this server is {ActualVersion}",
-                    BundledWebServerVersion,
+                    string.Join(", ", WebCompatibilityManifest.Current.SupportedServerVersions),
                     _applicationHost.ApplicationVersion);
                 next(app);
                 return;
@@ -94,7 +94,8 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
     internal static bool CanServeBundledWeb(Version applicationVersion)
     {
         ArgumentNullException.ThrowIfNull(applicationVersion);
-        return applicationVersion == BundledWebServerVersion;
+        return WebCompatibilityManifest.Current.SupportedServerVersions
+            .Any(version => Version.TryParse(version, out var supported) && applicationVersion == supported);
     }
 
     internal static string WebRequestPathForBaseUrl(string? baseUrl)
@@ -120,6 +121,74 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
         return File.Exists(Path.Combine(webRoot, "index.html"))
             ? webRoot
             : null;
+    }
+
+    internal static string IndependentUiRequestPathForBaseUrl(string? baseUrl)
+    {
+        var webPath = WebRequestPathForBaseUrl(baseUrl);
+        return webPath[..^DefaultWebRequestPath.Length] + "/LiveTvCategories/ui";
+    }
+
+    internal static string? ResolveIndependentUiRoot()
+    {
+        var pluginDirectory = Path.GetDirectoryName(typeof(Plugin).Assembly.Location);
+        if (string.IsNullOrEmpty(pluginDirectory))
+        {
+            return null;
+        }
+
+        var root = Path.Combine(pluginDirectory, "category-browser");
+        return File.Exists(Path.Combine(root, "index.html")) ? root : null;
+    }
+
+    private void ConfigureIndependentUi(IApplicationBuilder app)
+    {
+        var root = ResolveIndependentUiRoot();
+        if (root is null)
+        {
+            return;
+        }
+
+        var requestPath = IndependentUiRequestPathForBaseUrl(
+            _serverConfigurationManager.GetNetworkConfiguration().BaseUrl);
+        app.Use(async (context, nextMiddleware) =>
+        {
+            if (context.Request.Path.Equals(new PathString(requestPath))
+                && (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method)))
+            {
+                context.Response.Redirect(requestPath + "/" + context.Request.QueryString);
+                return;
+            }
+
+            await nextMiddleware(context).ConfigureAwait(false);
+        });
+
+        var fileProvider = new PhysicalFileProvider(root);
+        var defaults = new DefaultFilesOptions
+        {
+            FileProvider = fileProvider,
+            RequestPath = new PathString(requestPath)
+        };
+        defaults.DefaultFileNames.Clear();
+        defaults.DefaultFileNames.Add("index.html");
+        app.UseDefaultFiles(defaults);
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = fileProvider,
+            RequestPath = new PathString(requestPath),
+            OnPrepareResponse = context =>
+            {
+                // Stable asset names: never leave old code cached through an upgrade.
+                context.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+                context.Context.Response.Headers["X-Live-TV-Categories-UI"] =
+                    typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "unknown";
+                context.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                context.Context.Response.Headers["Referrer-Policy"] = "same-origin";
+                context.Context.Response.Headers["Content-Security-Policy"] =
+                    "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+            }
+        });
+        _logger.LogInformation("Live TV Categories independent browser is available at {RequestPath}", requestPath);
     }
 
     internal static bool IsMutableShellFile(string name)

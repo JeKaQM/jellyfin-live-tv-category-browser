@@ -29,6 +29,36 @@ public sealed class PluginWebClientStartupFilterTests
     }
 
     [Theory]
+    [InlineData(null, "/LiveTvCategories/ui")]
+    [InlineData("/", "/LiveTvCategories/ui")]
+    [InlineData("/jellyfin", "/jellyfin/LiveTvCategories/ui")]
+    public void IndependentUiPathDoesNotDependOnFullWebCompatibility(string? baseUrl, string expected)
+    {
+        Assert.Equal(expected, PluginWebClientStartupFilter.IndependentUiRequestPathForBaseUrl(baseUrl));
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("null")]
+    [InlineData("invalid JSON")]
+    [InlineData("{\"schemaVersion\":99}")]
+    public void InvalidCompatibilityDeclarationFailsClosed(string json)
+    {
+        Assert.Empty(WebCompatibilityManifest.Parse(json).SupportedServerVersions);
+    }
+
+    [Fact]
+    public void CompatibilityDeclarationIsEmbeddedAndMatchesTheReleaseWeb()
+    {
+        Assert.Equal(1, WebCompatibilityManifest.Current.SchemaVersion);
+        Assert.Equal("12.2.0", WebCompatibilityManifest.Current.ServerWebVersion);
+        Assert.Equal("12.0.0.0", WebCompatibilityManifest.Current.TargetAbi);
+        Assert.Equal("12.0.0", WebCompatibilityManifest.Current.ServerApiVersion);
+        Assert.Equal(new[] { "12.0.0.0", "12.1.0.0", "12.2.0.0" }, WebCompatibilityManifest.Current.ApiSupportedServerVersions);
+        Assert.Equal("12.2.0.0", Assert.Single(WebCompatibilityManifest.Current.SupportedServerVersions));
+    }
+
+    [Theory]
     [InlineData("index.html")]
     [InlineData("INDEX.HTML")]
     [InlineData("config.json")]

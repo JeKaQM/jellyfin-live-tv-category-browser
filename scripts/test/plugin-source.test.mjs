@@ -11,7 +11,7 @@ async function source(relativePath) {
 }
 
 test('plugin is ABI-pinned and keeps category browsing out of the playback path', async () => {
-    const [project, manifest, plugin, configuration, index, controller, webClient, registrator] = await Promise.all([
+    const [project, manifest, plugin, configuration, index, controller, webClient, registrator, adapter, compatibility] = await Promise.all([
         source('Jellyfin.Plugin.LiveTvCategories/Jellyfin.Plugin.LiveTvCategories.csproj'),
         source('build.yaml'),
         source('Jellyfin.Plugin.LiveTvCategories/Plugin.cs'),
@@ -19,22 +19,28 @@ test('plugin is ABI-pinned and keeps category browsing out of the playback path'
         source('Jellyfin.Plugin.LiveTvCategories/Services/LiveTvCategoryIndex.cs'),
         source('Jellyfin.Plugin.LiveTvCategories/Controllers/LiveTvCategoriesController.cs'),
         source('Jellyfin.Plugin.LiveTvCategories/WebClient/PluginWebClientStartupFilter.cs'),
-        source('Jellyfin.Plugin.LiveTvCategories/PluginServiceRegistrator.cs')
+        source('Jellyfin.Plugin.LiveTvCategories/PluginServiceRegistrator.cs'),
+        source('Jellyfin.Plugin.LiveTvCategories/Services/JellyfinLiveTvCompatibilityAdapter.cs'),
+        source('web/compatibility.json')
     ]);
 
-    assert.match(project, /Jellyfin\.Controller" Version="12\.2\.0"/);
-    assert.match(project, /Jellyfin\.Model" Version="12\.2\.0"/);
+    assert.match(project, /Jellyfin\.Controller" Version="\$\(JellyfinApiVersion\)"/);
+    assert.match(project, /Jellyfin\.Model" Version="\$\(JellyfinApiVersion\)"/);
+    assert.match(project, /EmbeddedResource Include="\.\.\/web\/compatibility\.json"/);
     assert.match(project, /<TargetFramework>net10\.0<\/TargetFramework>/);
-    assert.match(manifest, /targetAbi: "12\.2\.0\.0"/);
-    assert.match(manifest, /version: "0\.5\.0\.0"/);
+    assert.ok(manifest.includes(`targetAbi: "${JSON.parse(compatibility).targetAbi}"`));
+    assert.match(manifest, /version: "0\.6\.0\.0"/);
     assert.match(plugin, /BasePlugin<PluginConfiguration>/);
     assert.match(plugin, /Plugin\(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer\)/);
     assert.match(plugin, /: base\(applicationPaths, xmlSerializer\)/);
     assert.match(configuration, /PluginConfiguration : BasePluginConfiguration/);
-    assert.match(index, /host\.Type, "m3u"/);
-    assert.match(index, /GetChannels\(true, cancellationToken\)/);
+    assert.match(adapter, /host\.Type, "m3u"/);
+    assert.match(adapter, /GetChannels\(true, token\)/);
     assert.doesNotMatch(controller, /MediaSource|HttpClient|FFmpeg|Transcod/i);
-    assert.match(controller, /skipVisibilityCheck: true/);
+    assert.match(adapter, /skipVisibilityCheck: true/);
+    assert.match(controller, /_adapter\.GetChannelDtos/);
+    assert.match(index, /GetVisibleChannelIds/);
+    assert.doesNotMatch(index, /MediaBrowser\.Controller|Jellyfin\.Database/);
     assert.doesNotMatch(index, /\.Path\b|HttpClient|FFmpeg|Transcod/i);
     assert.match(webClient, /UseStaticFiles/);
     assert.match(webClient, /Path\.Combine\(pluginDirectory, "web"\)/);
@@ -43,12 +49,13 @@ test('plugin is ABI-pinned and keeps category browsing out of the playback path'
 });
 
 test('build tooling is pinned to the Jellyfin 12 runtime', async () => {
-    const [globalJson, testProject, buildPlugin, buildRelease, workflow] = await Promise.all([
+    const [globalJson, testProject, buildPlugin, buildRelease, workflow, compatibilityWorkflow] = await Promise.all([
         source('global.json'),
         source('Jellyfin.Plugin.LiveTvCategories.Tests/Jellyfin.Plugin.LiveTvCategories.Tests.csproj'),
         source('scripts/build-plugin.sh'),
         source('scripts/build-release.sh'),
-        source('.github/workflows/release.yml')
+        source('.github/workflows/release.yml'),
+        source('.github/workflows/compatibility.yml')
     ]);
 
     assert.equal(JSON.parse(globalJson).sdk.version, '10.0.100');
@@ -56,13 +63,15 @@ test('build tooling is pinned to the Jellyfin 12 runtime', async () => {
     assert.match(buildPlugin, /dotnet-sdk-10\.0/);
     assert.match(buildRelease, /mcr\.microsoft\.com\/dotnet\/sdk:10\.0/);
     assert.match(buildRelease, /node:24-bookworm/);
-    assert.match(workflow, /dotnet-version: '10\.0\.x'/);
+    assert.match(compatibilityWorkflow, /dotnet-version: '10\.0\.x'/);
     assert.match(workflow, /node-version: '24\.x'/);
-    assert.match(workflow, /npm run build:check/);
-    assert.match(workflow, /npm run test/);
-    assert.match(workflow, /npm run lint/);
-    assert.match(workflow, /npm run stylelint/);
-    assert.match(workflow, /npm run escheck/);
+    assert.match(workflow, /needs: compatibility/);
+    assert.match(compatibilityWorkflow, /npm run build:check/);
+    assert.match(compatibilityWorkflow, /npm run test:browser/);
+    assert.match(compatibilityWorkflow, /npm run lint/);
+    assert.match(compatibilityWorkflow, /npm run stylelint/);
+    assert.match(compatibilityWorkflow, /npm run escheck/);
+    assert.match(compatibilityWorkflow, /smoke-server\.ps1/);
 });
 
 test('C# tests import the xUnit API explicitly', async () => {

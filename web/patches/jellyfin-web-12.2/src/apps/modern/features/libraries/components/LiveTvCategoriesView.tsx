@@ -20,7 +20,6 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import React, { type FC, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
     getLiveTvCategoryChannelsQueryKey,
@@ -32,23 +31,18 @@ import {
     type LiveTvCategorySummary,
     parseCategoryStartIndex
 } from 'apps/modern/features/libraries/utils/liveTvCategories';
-import autoFocuser from 'components/autoFocuser';
-import Cards from 'components/cardbuilder/Card/Cards';
-import { CardShape } from 'components/cardbuilder/utils/shape';
-import NoItemsMessage from 'components/common/NoItemsMessage';
-import focusManager from 'components/focusManager';
-import Loading from 'components/loading/LoadingComponent';
-import ItemsContainer from 'elements/emby-itemscontainer/ItemsContainer';
-import { useApi } from 'hooks/useApi';
-import { useUserSettings } from 'hooks/useUserSettings';
-import globalize from 'lib/globalize';
-import type { CardOptions } from 'types/cardOptions';
+import {
+    autoFocuser, Cards, CardShape, type CardOptions, focusManager, globalize,
+    ItemsContainer, Loading, NoItemsMessage, useApi, useLocation, useNavigate,
+    useSearchParams, useUserSettings
+} from '../utils/liveTvJellyfinAdapter';
+import {
+    CATEGORY_HISTORY_STATE, CATEGORY_ID_PARAM, CATEGORY_START_INDEX_PARAM,
+    CHANNEL_FOCUS_HISTORY_STATE, findChannelFocusTarget, getNavigationState, type NavigationState,
+    rememberChannelInHistory
+} from '../utils/liveTvCategoryNavigation';
 
 const ALL_CHANNELS_ID = 'all-channels';
-const CATEGORY_ID_PARAM = 'categoryId';
-const CATEGORY_START_INDEX_PARAM = 'categoryStartIndex';
-const CATEGORY_HISTORY_STATE = 'liveTvCategoryEntry';
-const CHANNEL_FOCUS_HISTORY_STATE = 'liveTvCategoryFocusedChannelId';
 
 interface CategoryEntry extends Omit<LiveTvCategorySummary, 'channelCount'> {
     channelCount: number | null;
@@ -58,12 +52,6 @@ interface CategoryTileProps {
     category: CategoryEntry;
     onSelect: (categoryId: string) => void;
 }
-
-type NavigationState = Record<string, unknown>;
-
-const getNavigationState = (state: unknown): NavigationState => (
-    typeof state === 'object' && state !== null ? state as NavigationState : {}
-);
 
 const getCategoryIcon = (category: CategoryEntry): SvgIconComponent => {
     if (category.id === ALL_CHANNELS_ID) return Apps;
@@ -338,32 +326,14 @@ const LiveTvCategoriesView: FC = () => {
         if (!channelId || channelId === focusedChannelIdRef.current) return;
 
         focusedChannelIdRef.current = channelId;
-        const routerHistoryState = getNavigationState(window.history.state);
-        const currentNavigationState = getNavigationState(
-            routerHistoryState.usr ?? location.state
-        );
-
         window.history.replaceState(
-            {
-                ...routerHistoryState,
-                usr: {
-                    ...currentNavigationState,
-                    [CHANNEL_FOCUS_HISTORY_STATE]: channelId
-                }
-            },
+            rememberChannelInHistory(window.history.state, location.state, channelId),
             document.title
         );
     }, [ location.state ]);
 
     const focusChannelCard = useCallback((channelId: string) => {
-        const card = Array.from(
-            contentRef.current?.querySelectorAll<HTMLElement>('[data-id]') ?? []
-        ).find(element => element.dataset.id === channelId);
-        const focusTarget = card?.matches('button, a, input, select, textarea, .focusable') ?
-            card :
-            card?.querySelector<HTMLElement>(
-                'button:not(:disabled):not([tabindex="-1"]), a:not([tabindex="-1"]), .focusable'
-            );
+        const focusTarget = findChannelFocusTarget(contentRef.current, channelId);
 
         if (focusTarget) {
             focusManager.focus(focusTarget);

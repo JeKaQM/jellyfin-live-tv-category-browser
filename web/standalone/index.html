@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="same-origin">
+    <title>Live TV Categories — Jellyfin</title>
+    <link rel="stylesheet" href="app.css">
+    <script src="browser-core.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <header class="site-header">
+        <div>
+            <p class="eyebrow">Independent category browser</p>
+            <h1>Live TV Categories</h1>
+        </div>
+        <nav aria-label="Account and Jellyfin">
+            <a id="jellyfin-link" href="../../web/index.html">Open Jellyfin</a>
+            <button id="sign-out" type="button" hidden>Sign out</button>
+        </nav>
+    </header>
+    <main>
+        <p id="status" role="status" aria-live="polite"></p>
+        <div id="error-panel" hidden>
+            <p id="error" role="alert"></p>
+            <button id="retry" type="button" hidden>Try again</button>
+        </div>
+        <section id="login-view" aria-labelledby="login-title">
+            <h2 id="login-title">Sign in to your Jellyfin server</h2>
+            <p>Use your normal Jellyfin account. Administrator access is not required.</p>
+            <form id="login-form">
+                <label for="username">Username</label>
+                <input id="username" name="username" autocomplete="username" required>
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password">
+                <button id="sign-in" type="submit">Sign in</button>
+            </form>
+            <p class="muted">Your password is sent only to this server and is never saved by this page. Your session lasts in this tab until you sign out.</p>
+        </section>
+        <section id="categories-view" aria-labelledby="categories-title" hidden>
+            <h2 id="categories-title">Choose a category</h2>
+            <p id="account-name" class="muted"></p>
+            <div id="categories-list" class="card-list"></div>
+        </section>
+        <section id="channels-view" aria-labelledby="channels-title" hidden>
+            <div class="section-heading">
+                <button id="category-back" type="button">Back to categories</button>
+                <h2 id="channels-title"></h2>
+            </div>
+            <p class="muted">Channels open in normal Jellyfin for playback. You may need to sign in there separately. Use Back to return to this category and page.</p>
+            <div id="channels-list" class="card-list"></div>
+            <nav id="paging" class="paging" aria-label="Channel pages">
+                <button id="previous-page" type="button">Previous page</button>
+                <p id="page-summary" role="status"></p>
+                <button id="next-page" type="button">Next page</button>
+            </nav>
+        </section>
+    </main>
+    <footer><p>Uses the server's category API without replacing Jellyfin Web. Remote arrows move focus; Back returns to categories.</p></footer>
+    <noscript>This category browser requires JavaScript. <a href="../../web/index.html">Open normal Jellyfin</a>.</noscript>
+</body>
+</html>

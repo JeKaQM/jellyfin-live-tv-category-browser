@@ -57,7 +57,7 @@ export const normalizeLiveTvCategories = (
 };
 
 export const getCategoryPageSize = (configuredPageSize: number) => {
-    if (!Number.isFinite(configuredPageSize) || configuredPageSize <= 0) {
+    if (!Number.isFinite(configuredPageSize) || configuredPageSize < 1) {
         return DEFAULT_PAGE_SIZE;
     }
 

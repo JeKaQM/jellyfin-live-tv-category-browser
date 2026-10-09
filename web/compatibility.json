@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "releaseLine": "12.2",
+  "serverWebVersion": "12.2.0",
+  "targetAbi": "12.0.0.0",
+  "serverApiVersion": "12.0.0",
+  "apiSupportedServerVersions": ["12.0.0.0", "12.1.0.0", "12.2.0.0"],
+  "targetFramework": "net10.0",
+  "tag": "v12.2",
+  "commit": "61b1f890365ad15138e943e694af723c1d47df2a",
+  "supportedServerVersions": [
+    "12.2.0.0"
+  ],
+  "probeServerVersions": [
+    "12.0.0",
+    "12.1.0",
+    "12.2.0"
+  ],
+  "patches": [
+    "integration.patch"
+  ],
+  "upstreamHashes": {
+    "src/apps/legacy/controllers/livetv/livetvsuggested.js": "49699fd4f2588f0be26f5f421e3ee44bddaf6f09",
+    "src/apps/legacy/controllers/livetv.html": "365c5b4415c55f50eccab101bfd483390ab90eab",
+    "src/apps/modern/features/libraries/components/PageTabContent.tsx": "430e09f6737f18ed1c06210a18cf62d556717922"
+  },
+  "previousOverlayHashes": {
+    "src/apps/modern/features/libraries/hooks/api/useLiveTvCategories.ts": [
+      "dab9d0a13191030aa3418feee964a483999e6330"
+    ],
+    "src/apps/modern/features/libraries/utils/liveTvCategories.ts": [
+      "6e164eb8432d288a52d3c477d1106b5562ba31f6"
+    ],
+    "src/apps/legacy/controllers/livetv/livetvsuggested.js": [
+      "7e4c7737625c9e3d23701c8a699abb4eeb48805a",
+      "2125c30cadc0ca6fccf6d69148fed79d3e39f019"
+    ],
+    "src/apps/legacy/controllers/livetv.html": [
+      "1f96005b733d1e6b1c7eeb22b539a9b5a60221e6"
+    ],
+    "src/apps/modern/features/libraries/components/PageTabContent.tsx": [
+      "10200d40a345fba793d0ae0fe416fce9ecffdf56"
+    ],
+    "src/apps/modern/features/libraries/components/LiveTvCategoriesView.tsx": [
+      "2b12c639dfb4fd9bdbb8dfe56fec6264cc6c4773",
+      "f6029930b2ac876e2f55531dde3cfaedca9a0355",
+      "f3db757537e793c17b10ba162aa8ac9729a6a31d",
+      "2a98888feac2fb139fa1687413925631cb3de9f4"
+    ],
+    "src/apps/legacy/controllers/livetv/livetvcategories.scss": [
+      "adb821a0ca977ac7d58e3e0d9d20cafd0a7291a0"
+    ]
+  }
+}

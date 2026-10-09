@@ -132,6 +132,15 @@
     min-width: 0;
 }
 
+.liveTvCategoryIcon svg {
+    height: 1.45em;
+    width: 1.45em;
+}
+
+.liveTvCategoryBackIcon svg {
+    vertical-align: middle;
+}
+
 .liveTvCategoryCardName {
     display: -webkit-box;
     font-size: 1.04em;

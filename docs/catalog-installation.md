@@ -1,113 +1,99 @@
-# Jellyfin UI installation and release runbook
+# Catalog installation and release runbook
 
-## What the release contains
+## Package contents
 
-Each Live TV Categories release is one Jellyfin plugin package with:
+Plugin `0.6.0.0` packages:
 
-- `Jellyfin.Plugin.LiveTvCategories.dll` at the package root;
-- a complete, version-matched Jellyfin Web build under `web/`;
-- GPL-2.0 license, attribution, and exact corresponding-source information; and
-- no Dispatcharr credentials, playlist data, channel URLs, API keys or user data.
+- `Jellyfin.Plugin.LiveTvCategories.dll`, built against the minimum tested Jellyfin 12.0 ABI.
+- `category-browser/` with `index.html`, `browser-core.js`, `app.js` and `app.css`.
+- A complete pinned Jellyfin Web `12.2.0` tree under `web/`.
+- `COMPATIBILITY.json`, license, attribution and corresponding-source information.
 
-The server plugin registers the category API and serves the bundled Web tree at Jellyfin's normal `/web` path. If the Web tree is unavailable, the plugin logs that it is running API-only instead of preventing Jellyfin from starting.
-
-Plugin `0.5.0.0` contains the Jellyfin Server/Web `12.2.0` implementation, including both the modern Live TV view and the legacy Web/TV view. It retains the LG webOS icon hardening and category-aware Back behavior introduced in `0.3.0.0`. Earlier catalog entries remain available for Jellyfin `12.1.0`, `12.0.0`, and `10.11.11`.
+No playlists, provider credentials, API keys or user data are included. The independent browser is served separately from bundled Web. The plugin never overwrites stock Jellyfin Web files.
 
 ## Compatibility
 
-| Plugin | Jellyfin Server and Web | Status |
+| Plugin | Supported Server | Category experience |
 | --- | --- | --- |
-| `0.5.0.0` | `12.2.0` | Current release |
-| `0.4.0.0` | `12.1.0` | Published maintenance line |
-| `0.3.0.0` | `12.0.0` | Published maintenance line |
-| `0.2.0.0` | `10.11.11` | Published maintenance line |
-| Matching version | Clients that load the server-hosted Web app | Category UI included; test each client |
-| Matching version | Android TV / Fire TV and Swiftfin native apps | Backend only; native category view still required |
-| Any other combination | Any other Jellyfin Server/Web version | Not supported |
+| `0.6.0.0` | `12.0.0`, `12.1.0`, `12.2.0` | API and independent browser on all three; integrated Programmes on 12.2.0 only |
+| `0.5.0.0` | `12.2.0` | Earlier integrated release |
+| `0.4.0.0` | `12.1.0` | Earlier integrated release |
+| `0.3.0.0` | `12.0.0` | Earlier integrated release |
+| `0.2.0.0` | `10.11.11` | Earlier integrated release |
 
-## Administrator installation
+The same `0.6.0.0` minimum-ABI DLL has been tested on the three declared Jellyfin 12 versions. Catalog minimum-ABI eligibility alone does not prove compatibility with an arbitrary newer version. Full bundled Web remains exact-version guarded.
 
-The stable repository URL is:
+Clients that load server-hosted Web can use the integrated screen on 12.2.0. A suitable browser can use the independent screen on all three tested servers. Native Android TV/Fire TV and Swiftfin do not acquire a native category screen.
+
+## Install
+
+Add this repository in **Dashboard → Plugins → Repositories**:
 
 ```text
 https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest/download/manifest.json
 ```
 
-In Jellyfin:
+1. Name it `Live TV Categories`, save, and open **Catalog**.
+2. Install `0.6.0.0` on a tested Jellyfin 12 server once it is listed. If it is absent, it has not been published yet; do not assume a source tag or probe is a release.
+3. Restart Jellyfin, then hard-refresh the browser.
+4. Open `/LiveTvCategories/ui/`, including any configured BaseUrl: `/jellyfin/LiveTvCategories/ui/`.
+5. Sign in with your normal Jellyfin account. Administrator access is needed for installation, not browsing.
+6. On `12.2.0`, also check **Live TV → Programmes** if you want integrated browsing.
 
-1. Open **Dashboard -> Plugins -> Repositories**.
-2. Select **Add**.
-3. Name it `Live TV Categories` and paste the repository URL.
-4. Save, open **Catalog**, and choose **Live TV Categories**.
-5. Install the version matching the server: `0.5.0.0` for Jellyfin `12.2.0`, `0.4.0.0` for `12.1.0`, `0.3.0.0` for `12.0.0`, or `0.2.0.0` for `10.11.11`. If the matching version is not listed, stop; it has not been published to the catalog yet.
-6. Restart Jellyfin when prompted.
-7. Hard-refresh the browser once so an old service worker or cached `index.html` cannot retain the previous Web shell.
-
-On Jellyfin 12.2, verify that the log contains both messages:
+Expected log messages:
 
 ```text
-Loaded plugin: Live TV Categories 0.5.0.0
-Live TV Categories is serving its bundled Jellyfin Web client
+Loaded plugin: Live TV Categories 0.6.0.0
+Live TV Categories independent browser is available at .../LiveTvCategories/ui
 ```
 
-On earlier supported Jellyfin versions, the loaded-plugin line ends in the corresponding plugin version. If a version-mismatch warning appears instead of the serving message, install the plugin release that exactly matches the server.
+On `12.2.0`, startup also confirms the bundled Jellyfin Web client is served. On `12.0.0` and `12.1.0`, its version-mismatch warning is expected: stock Web remains active while the independent browser works.
 
-Then open **Live TV -> Programmes** and confirm the category summary and tiles appear. On Jellyfin 12, also open a category and channel, then go back and confirm the category remains open. LG TV users should confirm the category icons render as icons rather than text or missing glyphs.
+Verify a category, page forward, open a channel and use browser Back. The category, page and focus should return. Independent-browser channels open ordinary Jellyfin details/playback, which may require a separate Web sign-in. Check icons and remote focus on your actual TV; physical LG hardware is not covered by automated browser tests.
 
-## Upgrade behavior
+## Upgrades
 
-Jellyfin checks the same repository manifest for later compatible versions. A compatible update can be installed from **Dashboard -> Plugins -> Updates** and activated with a restart. Every release must match its target Jellyfin Server ABI and Web version; do not reuse a Web build across Jellyfin versions.
+Jellyfin checks the repository for compatible plugin updates. Install through **Dashboard → Plugins → Updates** and restart.
 
-To move from Jellyfin `12.1.0` to `12.2.0`:
+Within the tested `12.0.0`/`12.1.0`/`12.2.0` set, `0.6.0.0` provides the backend and independent browser without requiring a different DLL for each version. Its full Web integration activates only on `12.2.0`; do not force that build onto the other servers.
 
-1. Back up Jellyfin's configuration and record the current plugin and Web deployment.
-2. Uninstall or disable Live TV Categories `0.4.0.0`, restart, and confirm the stock Web client loads.
-3. Upgrade both Jellyfin Server and Jellyfin Web to `12.2.0` using Jellyfin's normal upgrade procedure.
-4. Confirm `0.5.0.0` is listed in this repository, install it, and restart Jellyfin.
-5. Hard-refresh each browser or clear its Jellyfin site data once.
+Before a Jellyfin upgrade:
 
-Do not carry a bundled Web client across Jellyfin versions. Users upgrading from 10.11.11 must follow Jellyfin's supported server upgrade path and switch plugin versions at each exact Server/Web version.
+1. Back up Jellyfin configuration and record plugin versions, server/Web versions and manual overrides.
+2. Check the plugin's declared support and compatibility results for the destination version.
+3. If the destination is untested, disable or uninstall the plugin and restart before upgrading through Jellyfin's supported procedure.
+4. Confirm stock Web works. Install or re-enable the plugin only once that server version is explicitly supported.
+5. Restart and refresh client site data as needed.
+
+Users upgrading from 10.11.11 must follow Jellyfin's supported server upgrade path. Older plugin releases still require their exact matching Server/Web versions.
 
 ## Rollback
 
-If the category plugin fails after installation:
+1. Disable or uninstall the catalog plugin.
+2. Restart Jellyfin.
+3. Confirm stock Web loads; hard-refresh or clear Jellyfin site data if an old shell remains.
+4. Install an older plugin only when its supported Server/Web combination matches the running server.
 
-1. uninstall or disable the catalog version in **Dashboard -> Plugins**;
-2. restart Jellyfin;
-3. confirm Jellyfin's stock Web client loads, then hard-refresh the browser or clear its Jellyfin site data; and
-4. install an earlier plugin only if its supported Jellyfin Server and Web versions exactly match the running installation.
+Removing the plugin does not remove tuners, XMLTV guides, channels, recordings or playback configuration. Rolling back Jellyfin itself requires its supported backup/restore procedure. Disable old manual Web bind mounts or plugin directories unless they match the restored server.
 
-Rolling Jellyfin itself back requires Jellyfin's supported backup-restore procedure. An older plugin does not make an older bundled Web client compatible with a newer server. Keep any previous manual plugin directory or Docker Web override disabled unless it matches the restored server version.
+## Build and publish
 
-Removing the category plugin does not remove the Dispatcharr M3U tuner, XMLTV guide, channels, recordings or playback configuration.
-
-## Publish a release
-
-To build the same repository locally on a headless Docker host:
+Use Node 24, npm 11, .NET 10, Bash, Git and Python 3 for a complete release build:
 
 ```bash
-chmod +x scripts/build-release.sh
-PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.5.0.0' \
-  ./scripts/build-release.sh
+PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.6.0.0' \
+bash scripts/build-release.sh
 ```
 
-For a temporary LAN-only catalog acceptance test, use a reachable local base URL such as `http://127.0.0.1:8787`, serve `artifacts/catalog` with a static HTTP server, and add its `/manifest.json` URL in Jellyfin. Do not treat that temporary server as the long-term repository.
+The catalog builder requires all four published independent-browser assets, includes `COMPATIBILITY.json`, computes the package checksum and retains the historical `0.5.0.0` through `0.2.0.0` entries.
 
-The Jellyfin 12 build requires Node.js 24, npm 11, and the .NET 10 SDK; the release workflow supplies those environments. It publishes only from an exact version tag. For `0.5.0.0`:
+Only tag the intended, tested release commit:
 
 ```bash
-git tag -a v0.5.0.0 -m "Live TV Categories 0.5.0.0"
-git push origin v0.5.0.0
+git tag -a v0.6.0.0 -m "Live TV Categories 0.6.0.0"
+git push origin v0.6.0.0
 ```
 
-Until that tag has completed successfully and `0.5.0.0` appears on the Releases page, the Jellyfin 12.2 package is not published.
+The release workflow runs compatibility checks, builds the pinned Web client and plugin, packages the ZIP and manifest, then publishes assets. The release is available only when those checks finish successfully and `0.6.0.0` appears on [GitHub Releases](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases).
 
-The workflow:
-
-1. runs the JavaScript/source checks and C# tests;
-2. builds the exact Jellyfin Web `12.2.0` modern and legacy overlay;
-3. publishes the server plugin;
-4. creates the plugin ZIP and `manifest.json`; and
-5. attaches both files to the GitHub release.
-
-The GitHub repository should be public so Jellyfin can download the manifest and release ZIP without GitHub credentials.
+Scheduled compatibility checks and master canaries do not publish releases or widen the allowlist automatically. Keep the GitHub repository public so Jellyfin can fetch the manifest and ZIP without GitHub credentials.

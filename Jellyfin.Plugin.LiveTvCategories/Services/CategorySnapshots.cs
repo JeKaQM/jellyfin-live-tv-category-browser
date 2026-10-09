@@ -7,7 +7,7 @@ using Jellyfin.Plugin.LiveTvCategories.Models;
 
 namespace Jellyfin.Plugin.LiveTvCategories.Services;
 
-internal sealed record IndexedChannel(Guid InternalId, string? GroupName);
+public sealed record IndexedChannel(Guid InternalId, string? GroupName);
 
 internal sealed class CategoryRecord
 {

@@ -4,6 +4,8 @@ set -euo pipefail
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plugin_dll="${PLUGIN_DLL_PATH:-${project_root}/artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll}"
 web_dist="${JELLYFIN_WEB_DIST:-${project_root}/build/jellyfin-web-12.2/dist}"
+standalone_dist="${CATEGORY_BROWSER_DIST:-$(dirname "$plugin_dll")/category-browser}"
+compatibility_path="${project_root}/web/compatibility.json"
 catalog_dir="${CATALOG_OUTPUT_DIR:-${project_root}/artifacts/catalog}"
 release_base_url="${PLUGIN_RELEASE_BASE_URL:-}"
 build_timestamp="${BUILD_TIMESTAMP:-}"
@@ -24,9 +26,16 @@ if [[ -z "$release_base_url" ]]; then
     exit 1
 fi
 
-for required_file in "$plugin_dll" "${web_dist}/index.html" "${project_root}/LICENSE" "${project_root}/NOTICE.md"; do
+for required_file in "$plugin_dll" "${web_dist}/index.html" "$compatibility_path" "${project_root}/LICENSE" "${project_root}/NOTICE.md"; do
     if [[ ! -f "$required_file" ]]; then
         echo "Required release artifact is missing: $required_file" >&2
+        exit 1
+    fi
+done
+
+for filename in index.html browser-core.js app.js app.css; do
+    if [[ ! -f "$standalone_dist/$filename" ]]; then
+        echo "Required independent category browser asset is missing: $standalone_dist/$filename" >&2
         exit 1
     fi
 done
@@ -48,26 +57,32 @@ package_path="${catalog_dir}/${package_name}"
 staging_dir="$(mktemp -d)"
 trap 'rm -rf "$staging_dir"' EXIT
 
-install -d "${staging_dir}/web" "$catalog_dir"
+install -d "${staging_dir}/web" "${staging_dir}/category-browser" "$catalog_dir"
 install -m 0644 "$plugin_dll" "${staging_dir}/Jellyfin.Plugin.LiveTvCategories.dll"
 install -m 0644 "${project_root}/LICENSE" "${staging_dir}/LICENSE"
 install -m 0644 "${project_root}/NOTICE.md" "${staging_dir}/NOTICE.md"
+install -m 0644 "$compatibility_path" "${staging_dir}/COMPATIBILITY.json"
+for filename in index.html browser-core.js app.js app.css; do
+    install -m 0644 "$standalone_dist/$filename" "${staging_dir}/category-browser/$filename"
+done
 cp -a "${web_dist}/." "${staging_dir}/web/"
 
-"$python_command" - "$staging_dir/SOURCE.txt" "$source_repository_url" "$version" <<'PY'
+"$python_command" - "$staging_dir/SOURCE.txt" "$source_repository_url" "$version" "$compatibility_path" <<'PY'
+import json
 import pathlib
 import sys
 
 target = pathlib.Path(sys.argv[1])
 source_url = sys.argv[2]
 version = sys.argv[3]
+compatibility = json.loads(pathlib.Path(sys.argv[4]).read_text(encoding="utf-8"))
 target.write_text(
     "Live TV Categories source code\n"
     "==============================\n\n"
     f"Plugin version: {version}\n"
     f"Project source: {source_url}\n"
-    "Jellyfin Web source: https://github.com/jellyfin/jellyfin-web/tree/v12.2\n"
-    "Jellyfin Web commit: 61b1f890365ad15138e943e694af723c1d47df2a\n\n"
+    f"Jellyfin Web source: https://github.com/jellyfin/jellyfin-web/tree/{compatibility['tag']}\n"
+    f"Jellyfin Web commit: {compatibility['commit']}\n\n"
     "The exact overlay and repeatable build scripts are in the project source.\n",
     encoding="utf-8")
 PY
@@ -94,7 +109,7 @@ with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compressleve
                 shutil.copyfileobj(source_file, target_file)
 PY
 
-"$python_command" - "$package_path" "$catalog_dir/manifest.json" "$release_base_url" "$version" "$build_timestamp" <<'PY'
+"$python_command" - "$package_path" "$catalog_dir/manifest.json" "$release_base_url" "$version" "$build_timestamp" "$compatibility_path" <<'PY'
 import datetime
 import hashlib
 import json
@@ -106,6 +121,7 @@ manifest_path = pathlib.Path(sys.argv[2])
 base_url = sys.argv[3].rstrip("/")
 version = sys.argv[4]
 requested_timestamp = sys.argv[5]
+compatibility = json.loads(pathlib.Path(sys.argv[6]).read_text(encoding="utf-8"))
 checksum = hashlib.md5(package_path.read_bytes()).hexdigest().upper()
 timestamp = requested_timestamp or datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
 
@@ -118,11 +134,18 @@ manifest = [{
     "category": "Live TV",
     "versions": [{
         "version": version,
-        "changelog": "Jellyfin 12.2 compatibility and its latest Web fixes, updated setup helper authentication, TV-safe icons and category-aware playback navigation.",
-        "targetAbi": "12.2.0.0",
+        "changelog": "Durability update: cross-version backend adapters, an independent category browser, checked minimal Web patches, SVG TV icons, fresh permission checks and continuous real-server/browser compatibility tests.",
+        "targetAbi": compatibility["targetAbi"],
         "sourceUrl": f"{base_url}/{package_path.name}",
         "checksum": checksum,
         "timestamp": timestamp,
+    }, {
+        "version": "0.5.0.0",
+        "changelog": "Jellyfin 12.2 compatibility and its latest Web fixes, updated setup helper authentication, TV-safe icons and category-aware playback navigation.",
+        "targetAbi": "12.2.0.0",
+        "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.5.0.0/Jellyfin.Plugin.LiveTvCategories_0.5.0.0.zip",
+        "checksum": "BBD5F3724E2975E8C2CE48A49ABA1255",
+        "timestamp": "2026-10-09T08:40:32+00:00",
     }, {
         "version": "0.4.0.0",
         "changelog": "Jellyfin 12.1 compatibility while retaining TV-safe icons and category-aware playback navigation.",

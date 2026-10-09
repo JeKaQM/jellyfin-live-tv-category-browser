@@ -1,103 +1,84 @@
-# Headless category-bridge development runbook
+# Headless category-bridge development
 
-Plugin `0.5.0.0` targets Jellyfin Server `12.2.0` exactly and builds with the .NET 10 SDK. It does not change the tuner, XMLTV, playback, transcoding or DVR path. Jellyfin `12.1.0`, `12.0.0`, and `10.11.11` installations must remain on their matching earlier plugin release tags.
+Plugin `0.6.0.0` builds with .NET 10 against the minimum tested Jellyfin `12.0.0` packages. The same DLL has passed real-server and real-browser checks on `12.0.0`, `12.1.0` and `12.2.0`. Future ABI compatibility is not guaranteed.
 
-For normal installation, use the catalog package in `docs/catalog-installation.md`. The steps below are the manual API-only development path; copying only the DLL does not install the bundled Web client.
+For production, use the [catalog package](catalog-installation.md). A DLL-only manual install supplies the API; adding the published `category-browser/` directory also supplies the independent screen. Full Programmes integration additionally needs the pinned `web/` tree and is enabled only on `12.2.0`.
 
-## 1. Build and test
-
-From the repository root:
+## Build
 
 ```bash
-chmod +x scripts/build-plugin.sh
-./scripts/build-plugin.sh
+bash scripts/build-plugin.sh
 ```
 
-Expected output:
+Published output includes:
 
 ```text
 artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll
+artifacts/plugin/category-browser/index.html
+artifacts/plugin/category-browser/browser-core.js
+artifacts/plugin/category-browser/app.js
+artifacts/plugin/category-browser/app.css
 ```
 
-If `dotnet` is missing, install the `dotnet-sdk-10.0` package for the build host's Linux distribution and rerun the script. Do not substitute an older SDK for the Jellyfin 12 build.
-
-If Docker is available, the host does not need a local SDK:
+Install the .NET 10 SDK on the build host or use Docker:
 
 ```bash
-sudo docker run --rm --user "$(id -u):$(id -g)" -e DOTNET_CLI_HOME=/tmp/dotnet-home -e NUGET_PACKAGES=/tmp/dotnet-home/.nuget/packages -v "$PWD:/src" -w /src mcr.microsoft.com/dotnet/sdk:10.0 bash scripts/build-plugin.sh
+sudo docker run --rm --user "$(id -u):$(id -g)" \
+  -e DOTNET_CLI_HOME=/tmp/dotnet-home -e NUGET_PACKAGES=/tmp/dotnet-home/.nuget/packages \
+  -v "$PWD:/src" -w /src mcr.microsoft.com/dotnet/sdk:10.0 \
+  bash scripts/build-plugin.sh
 ```
 
-## 2. Locate Jellyfin's plugin directory
+`JellyfinApiVersion` is an explicit development override for source-compatibility probes, not permission to ship an untested ABI. The default minimum-version build is the artifact used for cross-version runtime testing.
 
-Use the command matching the installation type.
+## Manual installation
 
-Native package:
+Locate the native plugin directory from Jellyfin's configured data directory, or inspect the container mount that supplies `/config`; its plugins directory is normally `/config/plugins` inside the container. Do not copy into a guessed system path.
+
+Stop Jellyfin. Create a dedicated `Live TV Categories_0.6.0.0` directory under the actual plugin root, copy the DLL and `category-browser/` from `artifacts/plugin`, and give the Jellyfin service/container user access to that directory. Jellyfin must be able to create `meta.json` on first startup. Disable earlier copies of the same plugin, then restart.
+
+Do not manually overwrite stock Jellyfin Web. Omitting `web/` deliberately leaves it active. Browse the independent page at `/LiveTvCategories/ui/`, including the server's configured BaseUrl.
+
+Verify **Dashboard → Plugins** shows version `0.6.0.0` without a restart pending. Logs should identify the plugin and independent-browser route; a bundled-Web mismatch warning on 12.0 or 12.1 is expected.
+
+## API smoke test
+
+This local example prompts for an administrator API key using hidden input, selects a Live TV-enabled user and prints only counts. Ordinary browsing uses normal user sessions; never enter an administrator API key into the browser page.
 
 ```bash
-sudo find /var/lib/jellyfin /etc/jellyfin -maxdepth 3 -type d -name plugins -print 2>/dev/null
+read -r -s -p 'Jellyfin API key: ' JF_KEY; echo
+USERS=$(curl -fsS -H "Authorization: MediaBrowser Token=\"$JF_KEY\"" http://127.0.0.1:8096/Users)
+USER_ID=$(python3 -c 'import json,sys; print(next((u["Id"] for u in json.load(sys.stdin) if u.get("Id") and (u.get("Policy") or {}).get("EnableLiveTvAccess",True)),""))' <<<"$USERS")
+if [ -n "$USER_ID" ]; then
+  curl -fsS -H "Authorization: MediaBrowser Token=\"$JF_KEY\"" --get \
+    http://127.0.0.1:8096/LiveTvCategories --data-urlencode "userId=$USER_ID" | \
+    python3 -c 'import json,sys; x=json.load(sys.stdin); print("Categories: %d | Channels represented: %d" % (len(x),sum(c.get("channelCount",0) for c in x)))'
+else
+  echo 'No Live TV-enabled user was found.' >&2
+fi
+unset JF_KEY USERS USER_ID
 ```
 
-Docker or Podman:
+Adjust the origin and BaseUrl for the actual server. Use HTTPS for remote credentials. The initial metadata build may take longer; later requests share metadata but still recheck current user permissions and visibility.
 
-```bash
-sudo docker inspect jellyfin --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
+## Real-server and browser checks
+
+The Windows smoke harness starts an isolated official Jellyfin server with temporary accounts and an M3U fixture, checks authentication, ordinary-user access, administrator diagnostics, paging and cached-permission revocation, then exercises actual browser sign-in, channel handoff, Back/focus and sign-out.
+
+```powershell
+npm ci
+npx playwright install chromium
+./scripts/smoke-server.ps1 -ServerVersion 12.2.0
+./scripts/smoke-server.ps1 -ServerVersion 12.1.0 -BasePath /jellyfin
+./scripts/smoke-server.ps1 -ServerVersion 12.0.0
 ```
 
-For a container, use the host directory mounted at `/config`, followed by `/plugins`.
+Use the same minimum-ABI plugin output for all three runs. The harness uses a fresh isolated data directory and stops only the server it starts. It does not modify a production Jellyfin installation.
 
-## 3. Install
+## Health and failure handling
 
-Stop Jellyfin first, then create a dedicated versioned plugin directory and copy only the plugin DLL into it. Replace `/actual/jellyfin/plugins` below with the path found in step 2.
+`/LiveTvCategories/Compatibility` requires Live TV authentication and exposes the contract and safe integration state. `/LiveTvCategories/Diagnostics` additionally requires administrator elevation and contains source counts, not URLs or credentials.
 
-Native service:
+Per-user visibility is never stored in the shared cache. Healthy tuner categories remain available when another tuner fails or internally times out. If all sources fail, a sanitized 503 with retry guidance is returned; actual request cancellation propagates normally.
 
-```bash
-PLUGIN_ROOT=/actual/jellyfin/plugins; sudo systemctl stop jellyfin && sudo install -d -o jellyfin -g jellyfin "$PLUGIN_ROOT/Live TV Categories_0.5.0.0" && sudo install -m 0644 -o jellyfin -g jellyfin artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll "$PLUGIN_ROOT/Live TV Categories_0.5.0.0/" && sudo systemctl start jellyfin
-```
-
-Docker:
-
-```bash
-PLUGIN_ROOT=/actual/jellyfin/config/plugins; PLUGIN_DIR="$PLUGIN_ROOT/Live TV Categories_0.5.0.0"; JF_UID=$(sudo docker exec jellyfin id -u); JF_GID=$(sudo docker exec jellyfin id -g); sudo docker stop jellyfin && sudo install -d -m 0755 -o "$JF_UID" -g "$JF_GID" "$PLUGIN_DIR" && sudo install -m 0644 -o "$JF_UID" -g "$JF_GID" artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll "$PLUGIN_DIR/" && sudo docker start jellyfin
-```
-
-The ownership step is required when the container runs as a non-root user: Jellyfin creates `meta.json` in the plugin directory during first startup.
-
-## 4. Verify startup
-
-Native service:
-
-```bash
-sudo journalctl -u jellyfin -b --no-pager | grep -iE 'Live TV Categories|LiveTvCategories|error'
-```
-
-Docker:
-
-```bash
-sudo docker logs jellyfin 2>&1 | grep -iE 'Live TV Categories|LiveTvCategories|error' | tail -n 100
-```
-
-Also confirm **Dashboard -> Plugins** lists `Live TV Categories` version `0.5.0.0` with no restart pending.
-
-## 5. Smoke-test the API
-
-This headless command asks for an administrator API key with hidden input, selects the first Live TV-enabled user, and prints only category counts. It does not print or store the key.
-
-```bash
-read -r -s -p 'Jellyfin API key: ' JF_KEY; echo; USERS=$(curl -fsS -H "Authorization: MediaBrowser Token=\"$JF_KEY\"" http://127.0.0.1:8096/Users) && USER_ID=$(python3 -c 'import json,sys; print(next((u["Id"] for u in json.load(sys.stdin) if u.get("Id") and (u.get("Policy") or {}).get("EnableLiveTvAccess",True)),""))' <<<"$USERS") && curl -fsS -H "Authorization: MediaBrowser Token=\"$JF_KEY\"" --get http://127.0.0.1:8096/LiveTvCategories --data-urlencode "userId=$USER_ID" | python3 -c 'import json,sys; x=json.load(sys.stdin); print("Categories: %d | Channels represented: %d" % (len(x),sum(c.get("channelCount",0) for c in x)))'; unset JF_KEY USERS USER_ID
-```
-
-Counts depend on the active tuner. For the repository's large-scale test fixture, the first line is:
-
-```text
-Categories: 321 | Channels represented: 27740
-```
-
-The first call may take longer because it builds the server-side index. Later calls within five minutes should use the cache.
-
-## 6. Safety checks
-
-- The category response must contain only `id`, `name` and `channelCount`.
-- A category channel response must contain normal Jellyfin channel DTOs and must not contain tuner configuration or Dispatcharr/provider URLs.
-- Clicking or requesting playback for a returned channel ID must follow the same Jellyfin route as the existing Channels page.
-- If the plugin fails, remove only its versioned directory while Jellyfin is stopped, then start Jellyfin again. The native M3U tuner and guide remain unchanged.
+On failure, keep normal Jellyfin available rather than bypassing authorization or forcing an untested bundled Web client. Remove or disable only this plugin while Jellyfin is stopped; tuner and guide configuration remains unchanged.

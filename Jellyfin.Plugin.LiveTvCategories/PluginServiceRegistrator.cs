@@ -15,6 +15,8 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
     /// <inheritdoc />
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
+        serviceCollection.AddSingleton<ILiveTvCompatibilityAdapter, JellyfinLiveTvCompatibilityAdapter>();
+        serviceCollection.AddSingleton<ILiveTvCategorySource>(provider => provider.GetRequiredService<ILiveTvCompatibilityAdapter>());
         serviceCollection.AddSingleton<ILiveTvCategoryIndex, LiveTvCategoryIndex>();
         serviceCollection.AddSingleton<IStartupFilter, PluginWebClientStartupFilter>();
     }
