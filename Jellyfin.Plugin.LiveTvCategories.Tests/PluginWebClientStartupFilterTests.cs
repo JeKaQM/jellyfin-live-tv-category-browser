@@ -6,10 +6,11 @@ namespace Jellyfin.Plugin.LiveTvCategories.Tests;
 public sealed class PluginWebClientStartupFilterTests
 {
     [Theory]
-    [InlineData("12.1.0.0", true)]
+    [InlineData("12.2.0.0", true)]
     [InlineData("11.0.0.0", false)]
     [InlineData("12.0.0.0", false)]
-    [InlineData("12.1.1.0", false)]
+    [InlineData("12.1.0.0", false)]
+    [InlineData("12.2.1.0", false)]
     [InlineData("13.0.0.0", false)]
     public void BundledWebRequiresItsExactServerVersion(string version, bool expected)
     {

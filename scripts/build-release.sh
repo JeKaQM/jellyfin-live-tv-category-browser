@@ -2,11 +2,11 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-web_source="${JELLYFIN_WEB_SOURCE:-${project_root}/build/jellyfin-web-12.1}"
+web_source="${JELLYFIN_WEB_SOURCE:-${project_root}/build/jellyfin-web-12.2}"
 
 if [[ -z "${PLUGIN_RELEASE_BASE_URL:-}" ]]; then
     echo "PLUGIN_RELEASE_BASE_URL is required." >&2
-    echo "Example: PLUGIN_RELEASE_BASE_URL=https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.4.0.0 $0" >&2
+    echo "Example: PLUGIN_RELEASE_BASE_URL=https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.5.0.0 $0" >&2
     exit 1
 fi
 

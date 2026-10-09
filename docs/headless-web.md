@@ -1,6 +1,6 @@
-# Headless Jellyfin Web 12.1.0 runbook
+# Headless Jellyfin Web 12.2.0 runbook
 
-The prepared `0.4.0.0` overlay changes only **Live TV -> Programmes** in Jellyfin Web `12.1.0`. It integrates with both the modern Live TV view and the legacy Web/TV controller. Each view requests the small `/LiveTvCategories` summary, shows `All Channels` plus every dynamic group, and requests one bounded page only after a category is selected. Channel cards still use Jellyfin Web's existing card components, so normal item actions and playback are preserved.
+The prepared `0.5.0.0` overlay changes only **Live TV -> Programmes** in Jellyfin Web `12.2.0`. It integrates with both the modern Live TV view and the legacy Web/TV controller. Each view requests the small `/LiveTvCategories` summary, shows `All Channels` plus every dynamic group, and requests one bounded page only after a category is selected. Channel cards still use Jellyfin Web's existing card components, so normal item actions and playback are preserved.
 
 The category tiles include counts, responsive sizing, and visible keyboard/remote focus. The legacy path uses class-based icon glyphs instead of icon-name ligature text for compatibility with older LG webOS browser engines. Both integrations preserve the selected category, page, and focus when channel details closes.
 
@@ -14,7 +14,7 @@ Run this on the Jellyfin host:
 dpkg-query -W -f='${Package} ${Version}\n' jellyfin-web 2>/dev/null || rpm -q jellyfin-web 2>/dev/null || true; sudo docker inspect jellyfin --format 'image={{.Config.Image}}' 2>/dev/null || true
 ```
 
-Proceed with this overlay only when the package or official container image is paired with Jellyfin Web `12.1.0`. If it reports another version, stop; the guard intentionally does not patch it.
+Proceed with this overlay only when the package or official container image is paired with Jellyfin Web `12.2.0`. If it reports another version, stop; the guard intentionally does not patch it.
 
 ## 2. Prepare exact source
 
@@ -25,7 +25,7 @@ chmod +x scripts/prepare-jellyfin-web.sh
 ./scripts/prepare-jellyfin-web.sh
 ```
 
-The script clones the official `v12.1` tag at commit `fae41f33eb7cd636a9ef68984adb82bb247a6e1b` into `build/jellyfin-web-12.1` unless `JELLYFIN_WEB_SOURCE` points to an existing checkout. Before copying the overlay, it verifies the package version, commit, and protected upstream source hashes. The protected Live TV files are unchanged from 12.0, but the exact 12.1 source and build are still pinned and validated.
+The script clones the official `v12.2` tag at commit `61b1f890365ad15138e943e694af723c1d47df2a` into `build/jellyfin-web-12.2` unless `JELLYFIN_WEB_SOURCE` points to an existing checkout. Before copying the overlay, it verifies the package version, commit, and protected upstream source hashes. The protected Live TV files are unchanged from 12.1, while the build includes 12.2's upstream item-details security fixes, gamepad navigation improvements, and playback updates.
 
 | File | Expected upstream blob |
 | --- | --- |
@@ -46,13 +46,13 @@ BUILD_WEB=1 ./scripts/prepare-jellyfin-web.sh
 Or build the prepared checkout in Docker (Bash, Git, and Python 3 are still used locally by the preparation step):
 
 ```bash
-sudo docker run --rm --user "$(id -u):$(id -g)" -e NPM_CONFIG_CACHE=/tmp/npm-cache -v "$PWD/build/jellyfin-web-12.1:/src" -w /src node:24-bookworm bash -lc 'npm ci && npm run build:production'
+sudo docker run --rm --user "$(id -u):$(id -g)" -e NPM_CONFIG_CACHE=/tmp/npm-cache -v "$PWD/build/jellyfin-web-12.2:/src" -w /src node:24-bookworm bash -lc 'npm ci && npm run build:production'
 ```
 
 The compiled Web tree is created under:
 
 ```text
-build/jellyfin-web-12.1/dist
+build/jellyfin-web-12.2/dist
 ```
 
 ## 4. Deployment choices

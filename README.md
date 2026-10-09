@@ -9,7 +9,7 @@
 Published packages are available from [GitHub Releases](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest). Each plugin version is tied to one exact Jellyfin Server and Web version.
 
 > [!IMPORTANT]
-> Plugin `0.4.0.0` supports **Jellyfin Server and Web 12.1.0 only**. Plugin `0.3.0.0` remains available for **12.0.0**, and plugin `0.2.0.0` remains available for **10.11.11**. Install the release that exactly matches both Server and Web.
+> Plugin `0.5.0.0` supports **Jellyfin Server and Web 12.2.0 only**. Earlier catalog releases remain available for **12.1.0**, **12.0.0**, and **10.11.11**. Install the release that exactly matches both Server and Web.
 
 ## Features
 
@@ -29,7 +29,8 @@ Published packages are available from [GitHub Releases](https://github.com/JeKaQ
 
 | Plugin | Jellyfin Server and Web | Status |
 | --- | --- | --- |
-| `0.4.0.0` | `12.1.0` | Current release |
+| `0.5.0.0` | `12.2.0` | Current release |
+| `0.4.0.0` | `12.1.0` | Published maintenance line for Jellyfin 12.1.0 |
 | `0.3.0.0` | `12.0.0` | Published maintenance line for Jellyfin 12.0.0 |
 | `0.2.0.0` | `10.11.11` | Published maintenance line for Jellyfin 10.11.11 |
 | Matching version | Clients that load the server-hosted Web app | Category UI included; test the specific browser or TV client |
@@ -40,7 +41,7 @@ The package serves a complete, version-matched Jellyfin Web build from the plugi
 
 ## Requirements
 
-- Jellyfin Server and server-hosted Web `12.1.0` for plugin `0.4.0.0`, `12.0.0` for plugin `0.3.0.0`, or `10.11.11` for plugin `0.2.0.0`, with administrator access for installation and restart.
+- Matching Jellyfin Server and server-hosted Web versions from the compatibility table, with administrator access for installation and restart.
 - An existing native Jellyfin M3U tuner whose playlist contains `group-title` metadata.
 - A completed Live TV guide refresh so the tuner channels are available to Jellyfin.
 
@@ -57,15 +58,15 @@ https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest/down
 1. Open **Dashboard → Plugins → Repositories** in Jellyfin.
 2. Select **Add**, name the repository `Live TV Categories`, and paste the manifest URL.
 3. Save, open **Catalog**, and select **Live TV Categories**.
-4. Install `0.4.0.0` on Jellyfin `12.1.0`, `0.3.0.0` on `12.0.0`, or `0.2.0.0` on `10.11.11`.
+4. Install `0.5.0.0` on Jellyfin `12.2.0`, `0.4.0.0` on `12.1.0`, `0.3.0.0` on `12.0.0`, or `0.2.0.0` on `10.11.11`.
 5. Restart Jellyfin when prompted.
 6. Hard-refresh the browser once to clear any cached Web shell or service worker.
 7. Open **Live TV → Programmes** and select a category.
 
-On Jellyfin 12.1, successful startup includes these log messages:
+On Jellyfin 12.2, successful startup includes these log messages:
 
 ```text
-Loaded plugin: Live TV Categories 0.4.0.0
+Loaded plugin: Live TV Categories 0.5.0.0
 Live TV Categories is serving its bundled Jellyfin Web client
 ```
 
@@ -150,7 +151,7 @@ Build the complete Web client, plugin ZIP, and repository manifest:
 
 ```bash
 chmod +x scripts/build-release.sh
-PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.4.0.0' \
+PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.5.0.0' \
 ./scripts/build-release.sh
 ```
 
@@ -175,4 +176,4 @@ Do not post API keys, M3U/XMLTV URLs, provider credentials, playlist contents, s
 
 Copyright © 2026 Jeno. This project is licensed under [GPL-2.0-only](LICENSE).
 
-Plugin `0.4.0.0` bundles a modified Jellyfin Web `12.1.0` build under the same license; earlier tags retain the corresponding Jellyfin Web `12.0.0` and `10.11.11` sources. Exact upstream and corresponding-source details are provided in [NOTICE.md](NOTICE.md). Jellyfin is a trademark of the Jellyfin Project; this community plugin is not an official Jellyfin Project release.
+Plugin `0.5.0.0` bundles a modified Jellyfin Web `12.2.0` build under the same license; earlier tags retain the corresponding Jellyfin Web `12.1.0`, `12.0.0`, and `10.11.11` sources. Exact upstream and corresponding-source details are provided in [NOTICE.md](NOTICE.md). Jellyfin is a trademark of the Jellyfin Project; this community plugin is not an official Jellyfin Project release.
