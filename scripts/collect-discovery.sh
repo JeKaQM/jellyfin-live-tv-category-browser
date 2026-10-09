@@ -45,7 +45,7 @@ curl_common=(
     --show-error
     --connect-timeout 10
     --max-time 120
-    --header "X-Emby-Token: ${api_key}"
+    --header "Authorization: MediaBrowser Token=\"${api_key}\""
 )
 
 api_get() {
@@ -80,7 +80,7 @@ optional_get_with_status() {
         --show-error \
         --connect-timeout 10 \
         --max-time 120 \
-        --header "X-Emby-Token: ${api_key}" \
+        --header "Authorization: MediaBrowser Token=\"${api_key}\"" \
         --output "$destination" \
         --write-out '%{http_code}' \
         "${base_url}${route}" || true)"

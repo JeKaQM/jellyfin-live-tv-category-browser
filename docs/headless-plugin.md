@@ -84,7 +84,7 @@ Also confirm **Dashboard -> Plugins** lists `Live TV Categories` version `0.5.0.
 This headless command asks for an administrator API key with hidden input, selects the first Live TV-enabled user, and prints only category counts. It does not print or store the key.
 
 ```bash
-read -r -s -p 'Jellyfin API key: ' JF_KEY; echo; USERS=$(curl -fsS -H "X-Emby-Token: $JF_KEY" http://127.0.0.1:8096/Users) && USER_ID=$(python3 -c 'import json,sys; print(next((u["Id"] for u in json.load(sys.stdin) if u.get("Id") and (u.get("Policy") or {}).get("EnableLiveTvAccess",True)),""))' <<<"$USERS") && curl -fsS -H "X-Emby-Token: $JF_KEY" --get http://127.0.0.1:8096/LiveTvCategories --data-urlencode "userId=$USER_ID" | python3 -c 'import json,sys; x=json.load(sys.stdin); print("Categories: %d | Channels represented: %d" % (len(x),sum(c.get("channelCount",0) for c in x)))'; unset JF_KEY USERS USER_ID
+read -r -s -p 'Jellyfin API key: ' JF_KEY; echo; USERS=$(curl -fsS -H "Authorization: MediaBrowser Token=\"$JF_KEY\"" http://127.0.0.1:8096/Users) && USER_ID=$(python3 -c 'import json,sys; print(next((u["Id"] for u in json.load(sys.stdin) if u.get("Id") and (u.get("Policy") or {}).get("EnableLiveTvAccess",True)),""))' <<<"$USERS") && curl -fsS -H "Authorization: MediaBrowser Token=\"$JF_KEY\"" --get http://127.0.0.1:8096/LiveTvCategories --data-urlencode "userId=$USER_ID" | python3 -c 'import json,sys; x=json.load(sys.stdin); print("Categories: %d | Channels represented: %d" % (len(x),sum(c.get("channelCount",0) for c in x)))'; unset JF_KEY USERS USER_ID
 ```
 
 Counts depend on the active tuner. For the repository's large-scale test fixture, the first line is:

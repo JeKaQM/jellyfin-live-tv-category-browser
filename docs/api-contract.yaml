@@ -88,7 +88,8 @@ components:
     jellyfinAuth:
       type: apiKey
       in: header
-      name: X-Emby-Token
+      name: Authorization
+      description: 'Use the full Jellyfin header value: MediaBrowser Token="<API key or session token>". Session clients may also include their Client, Device, DeviceId and Version metadata.'
   schemas:
     LiveTvCategory:
       type: object

@@ -55,7 +55,7 @@ curl_auth=(
     --show-error
     --connect-timeout 10
     --max-time 300
-    --header "X-Emby-Token: ${api_key}"
+    --header "Authorization: MediaBrowser Token=\"${api_key}\""
 )
 
 api_get() {

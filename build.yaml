@@ -15,4 +15,4 @@ owner: "jeno"
 artifacts:
 - "Jellyfin.Plugin.LiveTvCategories.dll"
 changelog: >
-  Adds Jellyfin 12.2 compatibility and its latest Web fixes while retaining TV-safe icons and category-aware playback navigation.
+  Adds Jellyfin 12.2 compatibility and its latest Web fixes, updates setup helpers to supported authentication, and retains TV-safe icons and category-aware playback navigation.

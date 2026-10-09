@@ -9,6 +9,8 @@
 
 Do not paste the API key into chat or put it directly on a command line.
 
+The helpers and examples use Jellyfin's supported `Authorization: MediaBrowser` header. Legacy authentication does not need to be enabled.
+
 ## Configure
 
 Run from the project directory:
@@ -44,7 +46,7 @@ Check the Refresh Guide task:
 
 ```bash
 curl -fsS \
-  -H "X-Emby-Token: $JF_KEY" \
+  -H "Authorization: MediaBrowser Token=\"$JF_KEY\"" \
   http://127.0.0.1:8096/ScheduledTasks \
 | python3 -c 'import json,sys
 for task in json.load(sys.stdin):
@@ -56,7 +58,7 @@ Check Jellyfin's published channel count:
 
 ```bash
 curl -fsS \
-  -H "X-Emby-Token: $JF_KEY" \
+  -H "Authorization: MediaBrowser Token=\"$JF_KEY\"" \
   'http://127.0.0.1:8096/LiveTv/Channels?StartIndex=0&Limit=1&AddCurrentProgram=false' \
 | python3 -c 'import json,sys; print(json.load(sys.stdin).get("TotalRecordCount", 0))'
 ```

@@ -29,7 +29,8 @@ test('collector creates a useful bundle without secrets or stream data', async (
     context.after(() => rm(outputDirectory, { recursive: true, force: true }));
 
     const server = http.createServer((request, response) => {
-        assert.equal(request.headers['x-emby-token'], secretApiKey);
+        assert.equal(request.headers.authorization, `MediaBrowser Token="${secretApiKey}"`);
+        assert.equal(request.headers['x-emby-token'], undefined);
         const requestUrl = new URL(request.url, 'http://127.0.0.1');
 
         switch (requestUrl.pathname) {
@@ -164,7 +165,7 @@ test('collector creates a useful bundle without secrets or stream data', async (
     context.after(() => new Promise((resolve) => server.close(resolve)));
     const address = server.address();
 
-    await execFileAsync('bash', [collectorPath], {
+    const collection = await execFileAsync('bash', [collectorPath], {
         cwd: path.resolve(testDirectory, '..', '..'),
         env: {
             ...process.env,
@@ -173,6 +174,9 @@ test('collector creates a useful bundle without secrets or stream data', async (
             DISCOVERY_OUTPUT_DIR: outputDirectory
         }
     });
+
+    assert.ok(!collection.stdout.includes(secretApiKey));
+    assert.ok(!collection.stderr.includes(secretApiKey));
 
     const outputNames = await readdir(outputDirectory);
     assert.equal(outputNames.length, 1);

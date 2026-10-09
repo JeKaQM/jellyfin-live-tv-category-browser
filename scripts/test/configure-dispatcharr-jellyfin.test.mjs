@@ -36,7 +36,11 @@ test('headless setup adds Dispatcharr once, refreshes guide and reports channels
         const requestUrl = new URL(request.url, 'http://127.0.0.1');
         const isDispatcharrOutput = requestUrl.pathname.startsWith('/output/');
         if (!isDispatcharrOutput) {
-            assert.equal(request.headers['x-emby-token'], apiKey);
+            assert.equal(request.headers.authorization, `MediaBrowser Token="${apiKey}"`);
+            assert.equal(request.headers['x-emby-token'], undefined);
+        } else {
+            assert.equal(request.headers.authorization, undefined);
+            assert.equal(request.headers['x-emby-token'], undefined);
         }
 
         if (request.method === 'HEAD' && requestUrl.pathname === '/output/epg') {
@@ -151,6 +155,7 @@ test('headless setup adds Dispatcharr once, refreshes guide and reports channels
     assert.match(first.stdout, /Jellyfin now exposes 3 Live TV channels/);
     assert.match(first.stdout, /Xtream Library is still active/);
     assert.ok(!first.stdout.includes(apiKey));
+    assert.ok(!first.stderr.includes(apiKey));
     assert.ok(!first.stdout.includes('Private Admin Name'));
     assert.ok(!first.stdout.includes('private.invalid'));
     assert.equal(tunerPosts, 1);
@@ -161,6 +166,8 @@ test('headless setup adds Dispatcharr once, refreshes guide and reports channels
     assert.match(second.stdout, /M3U tuner already exists/);
     assert.match(second.stdout, /XMLTV guide already exists/);
     assert.match(second.stdout, /Refresh Guide task is already running/);
+    assert.ok(!second.stdout.includes(apiKey));
+    assert.ok(!second.stderr.includes(apiKey));
     assert.equal(tunerPosts, 1);
     assert.equal(listingPosts, 1);
     assert.equal(refreshPosts, 1);

@@ -118,7 +118,7 @@ manifest = [{
     "category": "Live TV",
     "versions": [{
         "version": version,
-        "changelog": "Jellyfin 12.2 compatibility and its latest Web fixes while retaining TV-safe icons and category-aware playback navigation.",
+        "changelog": "Jellyfin 12.2 compatibility and its latest Web fixes, updated setup helper authentication, TV-safe icons and category-aware playback navigation.",
         "targetAbi": "12.2.0.0",
         "sourceUrl": f"{base_url}/{package_path.name}",
         "checksum": checksum,
