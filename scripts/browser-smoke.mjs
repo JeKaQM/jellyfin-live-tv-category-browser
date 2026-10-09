@@ -43,8 +43,7 @@ try {
         await page.locator('#txtManualPassword').fill(process.env.LTVC_TEST_PASSWORD);
         await page.locator('.manualLoginForm button[type="submit"]').click();
         await page.waitForURL(/home/);
-        const publicInfo = await (await page.request.get(baseUrl + '/System/Info/Public')).json();
-        await page.goto(baseUrl + '/web/index.html#/livetv?tab=0&serverId=' + encodeURIComponent(publicInfo.Id));
+        await page.locator('a[href*="livetv"]:visible').first().click();
         try {
             await page.getByRole('button', { name: /^News,/ }).click();
         } catch (error) {
@@ -54,7 +53,9 @@ try {
         const card = page.locator('[data-type="TvChannel"][data-id]').first();
         await card.waitFor({ state: 'visible' });
         const integratedChannelId = await card.getAttribute('data-id');
-        await card.locator('a').first().click();
+        const cardLink = card.locator('a').first();
+        if (await cardLink.count()) await cardLink.click();
+        else await card.click();
         await page.waitForURL(/details/);
         await page.goBack();
         await page.locator(`[data-id="${integratedChannelId}"]`).first().waitFor({ state: 'visible' });
