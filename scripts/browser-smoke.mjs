@@ -54,12 +54,15 @@ try {
         await card.waitFor({ state: 'visible' });
         const integratedChannelId = await card.getAttribute('data-id');
         const cardLink = card.locator('a').first();
-        if (await cardLink.count()) await cardLink.click();
-        else await card.click();
+        // Native cards have a Play overlay over their image. Enter activates
+        // the details link itself, matching keyboard/remote navigation.
+        if (await cardLink.count()) { await cardLink.focus(); await cardLink.press('Enter'); }
+        else { await card.focus(); await card.press('Enter'); }
         await page.waitForURL(/details/);
         await page.goBack();
         await page.locator(`[data-id="${integratedChannelId}"]`).first().waitFor({ state: 'visible' });
         await expect(page.getByRole('button', { name: /^News,/ })).toHaveCount(0);
+        await page.waitForFunction(id => document.activeElement?.closest('[data-id]')?.getAttribute('data-id') === id, integratedChannelId);
         console.log('PASS: Integrated Programmes categories and channel Back restoration');
     }
 } finally { await browser.close(); }
