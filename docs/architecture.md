@@ -19,7 +19,7 @@ Streams, transcoding, guide refresh, recording and DVR stay under Jellyfin's con
 
 M3U `group-title` becomes tuner-side `ChannelInfo.ChannelGroup`; it is not persisted as a group on `LiveTvChannel`, and the ordinary channel endpoint does not expose a group filter. The adapter matches cached tuner channel identifiers to persisted Jellyfin channels so the scan remains server-side.
 
-The `0.7.0.0` DLL is built against the minimum tested `12.0.0` packages. Release checks run it unchanged on `12.0.0`, `12.1.0`, `12.2.0` and `12.3.0`. This is an explicit tested set, not a promise that a future Jellyfin ABI will load the DLL.
+The `0.7.0.1` DLL is built against the minimum tested `12.0.0` packages. Release checks run it unchanged on `12.0.0`, `12.1.0`, `12.2.0` and `12.3.0`. This is an explicit tested set, not a promise that a future Jellyfin ABI will load the DLL.
 
 ## Identity and pagination
 

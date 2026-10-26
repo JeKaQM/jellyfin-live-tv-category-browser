@@ -1,6 +1,6 @@
 # Jellyfin Web integration and independent browser
 
-Plugin `0.7.0.0` has two interfaces:
+Plugin `0.7.0.1` has two interfaces:
 
 - The independent page at `/LiveTvCategories/ui/` works with the tested backend on Jellyfin `12.0.0`, `12.1.0`, `12.2.0` and `12.3.0` without replacing stock Web.
 - The bundled **Live TV → Programmes** integration is built from Jellyfin Web `12.3.0` and is enabled only on explicitly tested Server `12.2.0` and `12.3.0`. This is an exact allowlist, not permission for every future 12.x version.

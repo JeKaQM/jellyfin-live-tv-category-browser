@@ -1,6 +1,6 @@
 {
   "name": "jellyfin-live-tv-category-browser",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Category-first Live TV browsing for Jellyfin",
   "private": true,
   "type": "module",
