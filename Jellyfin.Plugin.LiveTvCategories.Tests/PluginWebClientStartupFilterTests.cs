@@ -80,6 +80,27 @@ public sealed class PluginWebClientStartupFilterTests
         Assert.All(manifest.SupportedServerVersions, version => Assert.Contains(version, manifest.ApiSupportedServerVersions));
     }
 
+    [Fact]
+    public void WebPatchVersionsDoNotInventMatchingServerVersions()
+    {
+        var manifest = WebCompatibilityManifest.Parse("""
+            {
+              "schemaVersion": 1,
+              "serverWebVersion": "12.3.1",
+              "targetAbi": "12.0.0.0",
+              "targetFramework": "net10.0",
+              "serverApiVersion": "12.0.0",
+              "apiSupportedServerVersions": ["12.0.0.0", "12.3.0.0"],
+              "supportedServerVersions": ["12.3.0.0"]
+            }
+            """);
+
+        Assert.Equal(1, manifest.SchemaVersion);
+        Assert.Equal("12.3.1", manifest.ServerWebVersion);
+        Assert.Equal("12.3.0.0", Assert.Single(manifest.SupportedServerVersions));
+        Assert.DoesNotContain("12.3.1.0", manifest.ApiSupportedServerVersions);
+    }
+
     [Theory]
     [InlineData("index.html")]
     [InlineData("INDEX.HTML")]
