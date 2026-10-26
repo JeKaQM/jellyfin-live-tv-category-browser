@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
+import { waitForManualLogin } from './browser-login.mjs';
 
 const baseUrl = process.env.LTVC_TEST_URL;
 assert.ok(baseUrl && process.env.LTVC_TEST_USERNAME && process.env.LTVC_TEST_PASSWORD, 'Run through smoke-server.ps1 with a local fixture account');
@@ -15,7 +16,7 @@ async function checkIntegratedLayout(layout) {
     try {
         await page.goto(baseUrl + '/web/index.html');
         await page.locator('#loginPage').waitFor({ state: 'visible' });
-        if (!await page.locator('#txtManualName').isVisible()) await page.locator('.btnManual').click();
+        await waitForManualLogin(page);
         await page.locator('#txtManualName').fill(process.env.LTVC_TEST_USERNAME);
         await page.locator('#txtManualPassword').fill(process.env.LTVC_TEST_PASSWORD);
         await page.locator('.manualLoginForm button[type="submit"]').click();
