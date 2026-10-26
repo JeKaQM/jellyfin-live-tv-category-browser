@@ -19,7 +19,7 @@ Streams, transcoding, guide refresh, recording and DVR stay under Jellyfin's con
 
 M3U `group-title` becomes tuner-side `ChannelInfo.ChannelGroup`; it is not persisted as a group on `LiveTvChannel`, and the ordinary channel endpoint does not expose a group filter. The adapter matches cached tuner channel identifiers to persisted Jellyfin channels so the scan remains server-side.
 
-The `0.6.0.0` DLL is built against the minimum tested `12.0.0` packages and has passed real-server and real-browser checks unchanged on `12.0.0`, `12.1.0` and `12.2.0`. This is an explicit tested set, not a promise that a future Jellyfin ABI will load the DLL.
+The `0.7.0.0` DLL is built against the minimum tested `12.0.0` packages. Release checks run it unchanged on `12.0.0`, `12.1.0`, `12.2.0` and `12.3.0`. This is an explicit tested set, not a promise that a future Jellyfin ABI will load the DLL.
 
 ## Identity and pagination
 
@@ -49,18 +49,18 @@ Static assets use no-store cache headers and a restrictive same-origin content s
 
 ## Minimal Web integration
 
-Only the Programmes content is replaced in Jellyfin Web `12.2.0`; the other top-level Live TV tabs and existing card/playback actions stay intact. Two small checked hooks connect upstream `livetvsuggested.js` and `PageTabContent.tsx` to owned category modules. Upstream legacy HTML is unchanged.
+Only the Programmes content is replaced in Jellyfin Web `12.3.0`; the other top-level Live TV tabs and existing card/playback actions stay intact. Two small checked hooks connect upstream `livetvsuggested.js` and `PageTabContent.tsx` to owned category modules in version-neutral `web/integration/`. Upstream legacy HTML is unchanged. The protected inputs did not change from Web 12.2 to 12.3, so the integration hooks were reused without copying an entire new overlay.
 
 Owned modules isolate API calls, normalization, paging, navigation and SVG controls. Modern navigation records category/page state in the URL; legacy controllers preserve equivalent in-page state. Both restore category, page and focus after channel details.
 
-`web/compatibility.json` is the central declaration for the exact tag/commit, protected source hashes, target ABI and version allowlist. Preparation verifies all managed input before writes, supports repeat runs and known prior overlays, rolls back incomplete writes and refuses unknown customizations.
+`web/compatibility.json` is the central declaration for the exact tag/commit, integration source directory, protected source hashes, target ABI and explicit server allowlist. Preparation verifies all managed input before writes, supports repeat runs and known prior overlays, rolls back incomplete writes and refuses unknown customizations. Build provenance ties the compiled Web output to this declaration and integration source; packaging rejects missing or mismatched provenance instead of trusting any `index.html` directory.
 
-Catalog ZIPs still include the complete pinned Web build under `web/` for seamless integration on its tested version. Jellyfin treats catalog `targetAbi` as a minimum, so a separate strict startup guard prevents this full client from being served on `12.0.0`, `12.1.0` or an unknown version. Missing Web files also leave stock Web active. The independent browser remains separate from that guard.
+Catalog ZIPs still include the complete pinned Web build under `web/` for seamless integration on the tested Server 12.2/12.3 combinations. Jellyfin treats catalog `targetAbi` as a minimum, so a separate strict startup guard prevents this full client from being served on `12.0.0`, `12.1.0` or an unknown version. Missing Web files also leave stock Web active. The independent browser remains separate from that guard.
 
 ## Health and continuous checks
 
 `GET /LiveTvCategories/Compatibility` requires Live TV authentication and returns the API contract, safe adapter state and integration compatibility. `/Diagnostics` additionally requires administrator elevation and exposes count-only source details.
 
-Compatibility CI tests declared stable servers and the latest stable release with the same minimum-ABI DLL, real M3U fixture and browser flows. Master canary builds detect upstream drift without promoting a version to the support allowlist. Web compilation, checked-patch preparation, browser interactions, permissions, packaging and ES5 checks complement server tests.
+Compatibility CI tests declared stable servers and the latest stable release with the same minimum-ABI DLL, real M3U fixture and browser flows. A separate stable-release declaration check fails when a new Server/Web release is not covered, even if the guarded fallback and backend probes still pass. Latest-stable and master canaries detect Web drift without promoting a version to the support allowlist. Modern and TV layout checks cover the integrated UI, not only the independent page. Web compilation, checked-patch preparation, browser interactions, permissions, provenance, packaging and ES5 checks complement server tests.
 
 Automated checks do not substitute for physical LG/webOS testing. Native Android TV/Fire TV and Swiftfin clients need their own category implementation; this plugin does not replace their interfaces.

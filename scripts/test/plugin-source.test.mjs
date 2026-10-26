@@ -29,7 +29,8 @@ test('plugin is ABI-pinned and keeps category browsing out of the playback path'
     assert.match(project, /EmbeddedResource Include="\.\.\/web\/compatibility\.json"/);
     assert.match(project, /<TargetFramework>net10\.0<\/TargetFramework>/);
     assert.ok(manifest.includes(`targetAbi: "${JSON.parse(compatibility).targetAbi}"`));
-    assert.match(manifest, /version: "0\.6\.0\.0"/);
+    const version = (await source('Directory.Build.props')).match(/<Version>([^<]+)<\/Version>/)[1];
+    assert.ok(manifest.includes(`version: "${version}"`));
     assert.match(plugin, /BasePlugin<PluginConfiguration>/);
     assert.match(plugin, /Plugin\(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer\)/);
     assert.match(plugin, /: base\(applicationPaths, xmlSerializer\)/);
@@ -72,6 +73,11 @@ test('build tooling is pinned to the Jellyfin 12 runtime', async () => {
     assert.match(compatibilityWorkflow, /npm run stylelint/);
     assert.match(compatibilityWorkflow, /npm run escheck/);
     assert.match(compatibilityWorkflow, /smoke-server\.ps1/);
+    assert.doesNotMatch(compatibilityWorkflow, /build\/jellyfin-web-\d/);
+    assert.match(compatibilityWorkflow, /web-build-identity\.mjs stamp/);
+    assert.match(compatibilityWorkflow, /check-stable-support\.mjs/);
+    const canaryWorkflow = await source('.github/workflows/upstream-canary.yml');
+    assert.match(canaryWorkflow, /target: \[latest-stable, master\]/);
 });
 
 test('C# tests import the xUnit API explicitly', async () => {

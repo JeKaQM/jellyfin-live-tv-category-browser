@@ -5,16 +5,36 @@ namespace Jellyfin.Plugin.LiveTvCategories.Tests;
 
 public sealed class PluginWebClientStartupFilterTests
 {
+    public static IEnumerable<object[]> SupportedWebVersions =>
+        WebCompatibilityManifest.Current.SupportedServerVersions.Select(version => new object[] { version });
+
     [Theory]
-    [InlineData("12.2.0.0", true)]
-    [InlineData("11.0.0.0", false)]
-    [InlineData("12.0.0.0", false)]
-    [InlineData("12.1.0.0", false)]
-    [InlineData("12.2.1.0", false)]
-    [InlineData("13.0.0.0", false)]
-    public void BundledWebRequiresItsExactServerVersion(string version, bool expected)
+    [MemberData(nameof(SupportedWebVersions))]
+    public void BundledWebAllowsEveryExplicitlyTestedServerVersion(string version)
     {
-        Assert.Equal(expected, PluginWebClientStartupFilter.CanServeBundledWeb(Version.Parse(version)));
+        Assert.True(PluginWebClientStartupFilter.CanServeBundledWeb(Version.Parse(version)));
+    }
+
+    [Fact]
+    public void BundledWebNeverInfersSupportForAnUntestedMinorPatchOrMajor()
+    {
+        var manifest = WebCompatibilityManifest.Current;
+        var highest = manifest.SupportedServerVersions.Select(Version.Parse).Max()!;
+        var candidates = new[]
+        {
+            new Version(highest.Major, highest.Minor + 1, 0, 0),
+            new Version(highest.Major, highest.Minor, highest.Build + 1, 0),
+            new Version(highest.Major + 1, 0, 0, 0),
+            new Version(11, 0, 0, 0)
+        };
+        foreach (var version in candidates)
+        {
+            Assert.False(PluginWebClientStartupFilter.CanServeBundledWeb(version));
+        }
+        foreach (var version in manifest.ApiSupportedServerVersions.Except(manifest.SupportedServerVersions))
+        {
+            Assert.False(PluginWebClientStartupFilter.CanServeBundledWeb(Version.Parse(version)));
+        }
     }
 
     [Theory]
@@ -50,12 +70,14 @@ public sealed class PluginWebClientStartupFilterTests
     [Fact]
     public void CompatibilityDeclarationIsEmbeddedAndMatchesTheReleaseWeb()
     {
-        Assert.Equal(1, WebCompatibilityManifest.Current.SchemaVersion);
-        Assert.Equal("12.2.0", WebCompatibilityManifest.Current.ServerWebVersion);
-        Assert.Equal("12.0.0.0", WebCompatibilityManifest.Current.TargetAbi);
-        Assert.Equal("12.0.0", WebCompatibilityManifest.Current.ServerApiVersion);
-        Assert.Equal(new[] { "12.0.0.0", "12.1.0.0", "12.2.0.0" }, WebCompatibilityManifest.Current.ApiSupportedServerVersions);
-        Assert.Equal("12.2.0.0", Assert.Single(WebCompatibilityManifest.Current.SupportedServerVersions));
+        var manifest = WebCompatibilityManifest.Current;
+        Assert.Equal(1, manifest.SchemaVersion);
+        Assert.True(Version.TryParse(manifest.ServerWebVersion, out _));
+        Assert.True(Version.TryParse(manifest.ServerApiVersion, out var baseline));
+        Assert.Equal(new Version(baseline!.Major, baseline.Minor, baseline.Build, 0), Version.Parse(manifest.TargetAbi));
+        Assert.NotEmpty(manifest.ApiSupportedServerVersions);
+        Assert.NotEmpty(manifest.SupportedServerVersions);
+        Assert.All(manifest.SupportedServerVersions, version => Assert.Contains(version, manifest.ApiSupportedServerVersions));
     }
 
     [Theory]

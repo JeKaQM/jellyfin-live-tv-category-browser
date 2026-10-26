@@ -5,10 +5,19 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { prepareSource } from '../prepare-jellyfin-web.mjs';
+import { prepareSource, resolveOverlayDirectory } from '../prepare-jellyfin-web.mjs';
 
 const git = (cwd, args, input) => execFileSync('git', ['-C', cwd, ...args], { input, encoding: 'utf8' }).trim();
 const hash = (cwd, content) => git(cwd, ['hash-object', '--stdin'], content);
+
+test('owned integration source is version-neutral and metadata paths cannot escape the repository', () => {
+    const project = path.resolve('fixture-project');
+    assert.equal(resolveOverlayDirectory({ releaseLine: '12.3', overlayDirectory: 'web/integration' }, project), path.join(project, 'web/integration'));
+    assert.equal(resolveOverlayDirectory({ releaseLine: '12.2' }, project), path.join(project, 'web/patches/jellyfin-web-12.2'));
+    for (const overlayDirectory of ['../outside', '/absolute', 'C:/outside', 'web/../outside', 'web\\integration', '']) {
+        assert.throws(() => resolveOverlayDirectory({ releaseLine: '12.3', overlayDirectory }, project), /Unsafe managed path/);
+    }
+});
 
 async function fixture(t) {
     const temp = await mkdtemp(path.join(os.tmpdir(), 'ltvc-prepare-test-'));
@@ -47,6 +56,17 @@ test('small integration patches preserve upstream tabs/template and are idempote
     assert.match(source, /guide = "unchanged"/);
     assert.equal(await readFile(path.join(options.sourceDir, 'src/template.html'), 'utf8'), options.template);
     assert.equal(first.changedFiles, 2);
+    assert.equal((await prepareSource(options)).changedFiles, 0);
+});
+
+test('Windows CRLF patch checkouts apply against canonical upstream files without editing the patch', async t => {
+    const options = await fixture(t);
+    const patchPath = path.join(options.overlayDir, 'integration.patch');
+    const patch = (await readFile(patchPath, 'utf8')).replace(/\n/g, '\r\n');
+    await writeFile(patchPath, patch);
+    await prepareSource(options);
+    assert.match(await readFile(path.join(options.sourceDir, 'src/upstream.js'), 'utf8'), /programs = "categories"/);
+    assert.equal(await readFile(patchPath, 'utf8'), patch);
     assert.equal((await prepareSource(options)).changedFiles, 0);
 });
 

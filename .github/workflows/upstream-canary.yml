@@ -1,4 +1,4 @@
-name: Upcoming Jellyfin Web compatibility
+name: Stable and upcoming Jellyfin Web compatibility
 
 on:
   schedule:
@@ -11,13 +11,19 @@ permissions:
 jobs:
   upstream-web:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [latest-stable, master]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.x'
-      - name: Check minimal patches and feature behavior against upstream master
+      - name: Check minimal patches and feature behavior against upstream
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           npm ci
-          npm run test:upstream
+          npm run test:upstream -- '${{ matrix.target }}'
       # This workflow never publishes or expands the supported-version manifest.

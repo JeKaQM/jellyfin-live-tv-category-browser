@@ -7,7 +7,7 @@ web_source="${JELLYFIN_WEB_SOURCE:-${project_root}/build/jellyfin-web-${release_
 
 if [[ -z "${PLUGIN_RELEASE_BASE_URL:-}" ]]; then
     echo "PLUGIN_RELEASE_BASE_URL is required." >&2
-    echo "Example: PLUGIN_RELEASE_BASE_URL=https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.6.0.0 $0" >&2
+    echo "Use the release URL for the version declared in Directory.Build.props." >&2
     exit 1
 fi
 
@@ -49,6 +49,8 @@ else
     echo "Node 24 and npm 11, or Docker, are required to build Jellyfin Web." >&2
     exit 1
 fi
+
+node "${project_root}/scripts/web-build-identity.mjs" stamp "$web_source" "${web_source}/dist"
 
 dotnet_version="$(dotnet --version 2>/dev/null || true)"
 if [[ "$dotnet_version" == 10.* ]]; then

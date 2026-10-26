@@ -43,6 +43,7 @@ if [[ "${BUILD_WEB:-0}" == "1" ]]; then
     fi
     npm --prefix "$source_dir" ci
     npm --prefix "$source_dir" run build:production
+    node "$project_root/scripts/web-build-identity.mjs" stamp "$source_dir" "$source_dir/dist"
     echo "Jellyfin Web build created under: $source_dir/dist"
 else
     echo "To build now: BUILD_WEB=1 JELLYFIN_WEB_SOURCE='$source_dir' $0"

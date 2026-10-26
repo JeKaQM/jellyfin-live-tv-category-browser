@@ -3,7 +3,8 @@ set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plugin_dll="${PLUGIN_DLL_PATH:-${project_root}/artifacts/plugin/Jellyfin.Plugin.LiveTvCategories.dll}"
-web_dist="${JELLYFIN_WEB_DIST:-${project_root}/build/jellyfin-web-12.2/dist}"
+release_line="$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).releaseLine" "${project_root}/web/compatibility.json")"
+web_dist="${JELLYFIN_WEB_DIST:-${project_root}/build/jellyfin-web-${release_line}/dist}"
 standalone_dist="${CATEGORY_BROWSER_DIST:-$(dirname "$plugin_dll")/category-browser}"
 compatibility_path="${project_root}/web/compatibility.json"
 catalog_dir="${CATALOG_OUTPUT_DIR:-${project_root}/artifacts/catalog}"
@@ -39,6 +40,9 @@ for filename in index.html browser-core.js app.js app.css; do
         exit 1
     fi
 done
+
+node "${project_root}/scripts/web-build-identity.mjs" verify "$web_dist"
+node "${project_root}/scripts/catalog-history.mjs"
 
 version="$("$python_command" - "${project_root}/Directory.Build.props" <<'PY'
 import sys
@@ -109,7 +113,7 @@ with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compressleve
                 shutil.copyfileobj(source_file, target_file)
 PY
 
-"$python_command" - "$package_path" "$catalog_dir/manifest.json" "$release_base_url" "$version" "$build_timestamp" "$compatibility_path" <<'PY'
+"$python_command" - "$package_path" "$catalog_dir/manifest.json" "$release_base_url" "$version" "$build_timestamp" "$compatibility_path" "${project_root}/web/catalog-history.json" <<'PY'
 import datetime
 import hashlib
 import json
@@ -122,6 +126,7 @@ base_url = sys.argv[3].rstrip("/")
 version = sys.argv[4]
 requested_timestamp = sys.argv[5]
 compatibility = json.loads(pathlib.Path(sys.argv[6]).read_text(encoding="utf-8"))
+history = json.loads(pathlib.Path(sys.argv[7]).read_text(encoding="utf-8"))
 checksum = hashlib.md5(package_path.read_bytes()).hexdigest().upper()
 timestamp = requested_timestamp or datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
 
@@ -134,40 +139,12 @@ manifest = [{
     "category": "Live TV",
     "versions": [{
         "version": version,
-        "changelog": "Durability update: cross-version backend adapters, an independent category browser, checked minimal Web patches, SVG TV icons, fresh permission checks and continuous real-server/browser compatibility tests.",
+        "changelog": "Jellyfin 12.3 update with shared version-neutral Web integration, verified build identity, retained 12.2 integration, stable-release drift alerts and expanded TV/navigation compatibility checks.",
         "targetAbi": compatibility["targetAbi"],
         "sourceUrl": f"{base_url}/{package_path.name}",
         "checksum": checksum,
         "timestamp": timestamp,
-    }, {
-        "version": "0.5.0.0",
-        "changelog": "Jellyfin 12.2 compatibility and its latest Web fixes, updated setup helper authentication, TV-safe icons and category-aware playback navigation.",
-        "targetAbi": "12.2.0.0",
-        "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.5.0.0/Jellyfin.Plugin.LiveTvCategories_0.5.0.0.zip",
-        "checksum": "BBD5F3724E2975E8C2CE48A49ABA1255",
-        "timestamp": "2026-10-09T08:40:32+00:00",
-    }, {
-        "version": "0.4.0.0",
-        "changelog": "Jellyfin 12.1 compatibility while retaining TV-safe icons and category-aware playback navigation.",
-        "targetAbi": "12.1.0.0",
-        "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.4.0.0/Jellyfin.Plugin.LiveTvCategories_0.4.0.0.zip",
-        "checksum": "1EFB0F744A5DB65C48364AAA4F6AD5F9",
-        "timestamp": "2026-09-17T20:04:55+00:00",
-    }, {
-        "version": "0.3.0.0",
-        "changelog": "Jellyfin 12 compatibility with improved TV icon rendering and category-aware playback navigation.",
-        "targetAbi": "12.0.0.0",
-        "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.3.0.0/Jellyfin.Plugin.LiveTvCategories_0.3.0.0.zip",
-        "checksum": "2FA4C24399B9CC8BF587457EF69BF11B",
-        "timestamp": "2026-09-11T17:39:50+01:00",
-    }, {
-        "version": "0.2.0.0",
-        "changelog": "UI-installable package with responsive category tiles and a bundled Jellyfin Web 10.11.11 client.",
-        "targetAbi": "10.11.11.0",
-        "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.2.0.0/Jellyfin.Plugin.LiveTvCategories_0.2.0.0.zip",
-        "checksum": "1A87C1C87086002152D1A9DEB5A84487",
-        "timestamp": "2026-08-21T22:18:44+01:00",
-    }],
+    }] + history,
 }]
 
 manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

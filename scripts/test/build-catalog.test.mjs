@@ -5,11 +5,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { BUILD_IDENTITY_FILE, describeWebBuild, webAssetHashes } from '../web-build-identity.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const pythonExecutable = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
 const releaseVersion = (await readFile(path.join(projectRoot, 'Directory.Build.props'), 'utf8')).match(/<Version>([^<]+)<\/Version>/)[1];
 const compatibility = JSON.parse(await readFile(path.join(projectRoot, 'web/compatibility.json'), 'utf8'));
+const history = JSON.parse(await readFile(path.join(projectRoot, 'web/catalog-history.json'), 'utf8'));
 
 test('catalog builder creates a Jellyfin repository manifest and complete plugin ZIP', async t => {
     const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'livetv-catalog-'));
@@ -22,8 +24,12 @@ test('catalog builder creates a Jellyfin repository manifest and complete plugin
     await writeFile(pluginDll, 'test plugin binary');
     await writeFile(path.join(webDist, 'index.html'), '<!doctype html>');
     await writeFile(path.join(webDist, 'assets', 'app.123.js'), 'console.log("test");');
+    // Fixture binary/source for packaging format tests; production stamps also
+    // verify the actual pinned source tree after compilation.
+    const identity = { ...await describeWebBuild({ metadata: compatibility }), assets: await webAssetHashes(webDist) };
+    await writeFile(path.join(webDist, BUILD_IDENTITY_FILE), JSON.stringify(identity));
 
-    execFileSync('bash', [path.join(projectRoot, 'scripts', 'build-catalog.sh')], {
+    const build = () => execFileSync('bash', [path.join(projectRoot, 'scripts', 'build-catalog.sh')], {
         cwd: projectRoot,
         env: {
             ...process.env,
@@ -38,10 +44,11 @@ test('catalog builder creates a Jellyfin repository manifest and complete plugin
         }
     });
 
+    build();
     const manifest = JSON.parse(await readFile(path.join(output, 'manifest.json'), 'utf8'));
     assert.equal(manifest.length, 1);
     assert.equal(manifest[0].guid, 'a4b2fdc8-cb2a-463b-812a-16e9ea88e12a');
-    assert.equal(manifest[0].versions.length, 5);
+    assert.equal(manifest[0].versions.length, 1 + history.length);
     assert.equal(manifest[0].versions[0].version, releaseVersion);
     assert.equal(manifest[0].versions[0].targetAbi, compatibility.targetAbi);
     assert.equal(
@@ -49,38 +56,7 @@ test('catalog builder creates a Jellyfin repository manifest and complete plugin
         `https://example.test/releases/download/v${releaseVersion}/Jellyfin.Plugin.LiveTvCategories_${releaseVersion}.zip`);
     assert.match(manifest[0].versions[0].checksum, /^[0-9A-F]{32}$/);
     assert.equal(manifest[0].versions[0].timestamp, '2026-08-21T00:00:00+00:00');
-    assert.deepEqual(manifest[0].versions[1], {
-        version: '0.5.0.0',
-        changelog: 'Jellyfin 12.2 compatibility and its latest Web fixes, updated setup helper authentication, TV-safe icons and category-aware playback navigation.',
-        targetAbi: '12.2.0.0',
-        sourceUrl: 'https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.5.0.0/Jellyfin.Plugin.LiveTvCategories_0.5.0.0.zip',
-        checksum: 'BBD5F3724E2975E8C2CE48A49ABA1255',
-        timestamp: '2026-10-09T08:40:32+00:00'
-    });
-    assert.deepEqual(manifest[0].versions[2], {
-        version: '0.4.0.0',
-        changelog: 'Jellyfin 12.1 compatibility while retaining TV-safe icons and category-aware playback navigation.',
-        targetAbi: '12.1.0.0',
-        sourceUrl: 'https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.4.0.0/Jellyfin.Plugin.LiveTvCategories_0.4.0.0.zip',
-        checksum: '1EFB0F744A5DB65C48364AAA4F6AD5F9',
-        timestamp: '2026-09-17T20:04:55+00:00'
-    });
-    assert.deepEqual(manifest[0].versions[3], {
-        version: '0.3.0.0',
-        changelog: 'Jellyfin 12 compatibility with improved TV icon rendering and category-aware playback navigation.',
-        targetAbi: '12.0.0.0',
-        sourceUrl: 'https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.3.0.0/Jellyfin.Plugin.LiveTvCategories_0.3.0.0.zip',
-        checksum: '2FA4C24399B9CC8BF587457EF69BF11B',
-        timestamp: '2026-09-11T17:39:50+01:00'
-    });
-    assert.deepEqual(manifest[0].versions[4], {
-        version: '0.2.0.0',
-        changelog: 'UI-installable package with responsive category tiles and a bundled Jellyfin Web 10.11.11 client.',
-        targetAbi: '10.11.11.0',
-        sourceUrl: 'https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.2.0.0/Jellyfin.Plugin.LiveTvCategories_0.2.0.0.zip',
-        checksum: '1A87C1C87086002152D1A9DEB5A84487',
-        timestamp: '2026-08-21T22:18:44+01:00'
-    });
+    assert.deepEqual(manifest[0].versions.slice(1), history);
 
     const packagePath = path.join(output, `Jellyfin.Plugin.LiveTvCategories_${releaseVersion}.zip`);
     const entries = JSON.parse(execFileSync(pythonExecutable, [
@@ -99,6 +75,7 @@ test('catalog builder creates a Jellyfin repository manifest and complete plugin
         'category-browser/browser-core.js',
         'category-browser/index.html',
         'web/index.html',
+        `web/${BUILD_IDENTITY_FILE}`,
         'web/assets/app.123.js'
     ]);
     const packagedCompatibility = JSON.parse(execFileSync(pythonExecutable, [
@@ -112,6 +89,13 @@ test('catalog builder creates a Jellyfin repository manifest and complete plugin
         packagePath
     ], { encoding: 'utf8' });
     assert.match(sourceNotice, /Project source: https:\/\/example\.test\/source/);
-    assert.match(sourceNotice, /Jellyfin Web source: https:\/\/github\.com\/jellyfin\/jellyfin-web\/tree\/v12\.2/);
-    assert.match(sourceNotice, /Jellyfin Web commit: 61b1f890365ad15138e943e694af723c1d47df2a/);
+    assert.ok(sourceNotice.includes(`Jellyfin Web source: https://github.com/jellyfin/jellyfin-web/tree/${compatibility.tag}`));
+    assert.ok(sourceNotice.includes(`Jellyfin Web commit: ${compatibility.commit}`));
+    const originalPackage = await readFile(packagePath);
+    await writeFile(path.join(webDist, 'assets/app.123.js'), 'stale or modified assets');
+    assert.throws(build, /Web assets changed/);
+    assert.deepEqual(await readFile(packagePath), originalPackage);
+    await rm(path.join(webDist, BUILD_IDENTITY_FILE));
+    assert.throws(build, /Web build identity is missing/);
+    assert.deepEqual(await readFile(packagePath), originalPackage);
 });

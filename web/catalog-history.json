@@ -1,0 +1,42 @@
+[
+  {
+    "version": "0.6.0.0",
+    "changelog": "Durability update: cross-version backend adapters, an independent category browser, checked minimal Web patches, SVG TV icons, fresh permission checks and continuous real-server/browser compatibility tests.",
+    "targetAbi": "12.0.0.0",
+    "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.6.0.0/Jellyfin.Plugin.LiveTvCategories_0.6.0.0.zip",
+    "checksum": "2F00B3DE749A2EF4C415E2A66A134E9B",
+    "timestamp": "2026-10-09T13:59:39+00:00"
+  },
+  {
+    "version": "0.5.0.0",
+    "changelog": "Jellyfin 12.2 compatibility and its latest Web fixes, updated setup helper authentication, TV-safe icons and category-aware playback navigation.",
+    "targetAbi": "12.2.0.0",
+    "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.5.0.0/Jellyfin.Plugin.LiveTvCategories_0.5.0.0.zip",
+    "checksum": "BBD5F3724E2975E8C2CE48A49ABA1255",
+    "timestamp": "2026-10-09T08:40:32+00:00"
+  },
+  {
+    "version": "0.4.0.0",
+    "changelog": "Jellyfin 12.1 compatibility while retaining TV-safe icons and category-aware playback navigation.",
+    "targetAbi": "12.1.0.0",
+    "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.4.0.0/Jellyfin.Plugin.LiveTvCategories_0.4.0.0.zip",
+    "checksum": "1EFB0F744A5DB65C48364AAA4F6AD5F9",
+    "timestamp": "2026-09-17T20:04:55+00:00"
+  },
+  {
+    "version": "0.3.0.0",
+    "changelog": "Jellyfin 12 compatibility with improved TV icon rendering and category-aware playback navigation.",
+    "targetAbi": "12.0.0.0",
+    "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.3.0.0/Jellyfin.Plugin.LiveTvCategories_0.3.0.0.zip",
+    "checksum": "2FA4C24399B9CC8BF587457EF69BF11B",
+    "timestamp": "2026-09-11T17:39:50+01:00"
+  },
+  {
+    "version": "0.2.0.0",
+    "changelog": "UI-installable package with responsive category tiles and a bundled Jellyfin Web 10.11.11 client.",
+    "targetAbi": "10.11.11.0",
+    "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.2.0.0/Jellyfin.Plugin.LiveTvCategories_0.2.0.0.zip",
+    "checksum": "1A87C1C87086002152D1A9DEB5A84487",
+    "timestamp": "2026-08-21T22:18:44+01:00"
+  }
+]

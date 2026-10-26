@@ -37,9 +37,9 @@ import {
     useSearchParams, useUserSettings
 } from '../utils/liveTvJellyfinAdapter';
 import {
-    CATEGORY_HISTORY_STATE, CATEGORY_ID_PARAM, CATEGORY_START_INDEX_PARAM,
-    CHANNEL_FOCUS_HISTORY_STATE, findChannelFocusTarget, getNavigationState, type NavigationState,
-    rememberChannelInHistory
+    CATEGORY_FOCUS_HISTORY_STATE, CATEGORY_HISTORY_STATE, CATEGORY_ID_PARAM, CATEGORY_START_INDEX_PARAM,
+    CHANNEL_FOCUS_HISTORY_STATE, findCategoryFocusTarget, findChannelFocusTarget, getNavigationState, type NavigationState,
+    rememberCategoryInHistory, rememberChannelInHistory
 } from '../utils/liveTvCategoryNavigation';
 
 const ALL_CHANNELS_ID = 'all-channels';
@@ -103,6 +103,7 @@ const CategoryTile: FC<CategoryTileProps> = ({ category, onSelect }) => {
             <ButtonBase
                 type='button'
                 aria-label={`${category.name}, ${channelText}`}
+                data-category-id={category.id}
                 onClick={handleClick}
                 sx={{
                     alignItems: 'center',
@@ -208,6 +209,9 @@ const LiveTvCategoriesView: FC = () => {
     const [ searchParams, setSearchParams ] = useSearchParams();
     const contentRef = useRef<HTMLDivElement>(null);
     const navigationState = getNavigationState(location.state);
+    const focusedCategoryId = typeof navigationState[CATEGORY_FOCUS_HISTORY_STATE] === 'string' ?
+        navigationState[CATEGORY_FOCUS_HISTORY_STATE] :
+        undefined;
     const focusedChannelId = typeof navigationState[CHANNEL_FOCUS_HISTORY_STATE] === 'string' ?
         navigationState[CHANNEL_FOCUS_HISTORY_STATE] :
         undefined;
@@ -251,9 +255,16 @@ const LiveTvCategoriesView: FC = () => {
     }), [ __legacyApiClient__, categoryChannelsQueryKey ]);
 
     const selectCategory = useCallback((selectedCategoryId: string) => {
+        // Remember the tile on the LIST entry before pushing its channel page,
+        // so both browser Back and the explicit category Back restore focus.
+        window.history.replaceState(
+            rememberCategoryInHistory(window.history.state, location.state, selectedCategoryId),
+            document.title
+        );
         const nextParams = new URLSearchParams(searchParams);
         const nextState: NavigationState = {
             ...getNavigationState(location.state),
+            [CATEGORY_FOCUS_HISTORY_STATE]: selectedCategoryId,
             [CATEGORY_HISTORY_STATE]: true
         };
         delete nextState[CHANNEL_FOCUS_HISTORY_STATE];
@@ -283,12 +294,13 @@ const LiveTvCategoriesView: FC = () => {
 
         const nextParams = new URLSearchParams(searchParams);
         const nextState = { ...currentState };
+        if (categoryId) nextState[CATEGORY_FOCUS_HISTORY_STATE] = categoryId;
         delete nextState[CATEGORY_HISTORY_STATE];
         delete nextState[CHANNEL_FOCUS_HISTORY_STATE];
         nextParams.delete(CATEGORY_ID_PARAM);
         nextParams.delete(CATEGORY_START_INDEX_PARAM);
         setSearchParams(nextParams, { replace: true, state: nextState });
-    }, [ location.state, navigate, searchParams, setSearchParams ]);
+    }, [ categoryId, location.state, navigate, searchParams, setSearchParams ]);
 
     const setPage = useCallback((nextStartIndex: number) => {
         const nextParams = new URLSearchParams(searchParams);
@@ -349,7 +361,14 @@ const LiveTvCategoriesView: FC = () => {
 
     useEffect(() => {
         if (!isContentPending) {
-            if (focusedChannelId && focusChannelCard(focusedChannelId)) {
+            if (!categoryId && focusedCategoryId) {
+                const categoryTarget = findCategoryFocusTarget(contentRef.current, focusedCategoryId);
+                if (categoryTarget) {
+                    focusManager.focus(categoryTarget);
+                    return;
+                }
+            }
+            if (categoryId && focusedChannelId && focusChannelCard(focusedChannelId)) {
                 return;
             }
 
@@ -357,6 +376,7 @@ const LiveTvCategoriesView: FC = () => {
         }
     }, [
         categoryId,
+        focusedCategoryId,
         focusedChannelId,
         focusChannelCard,
         isContentPending,

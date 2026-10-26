@@ -3,6 +3,7 @@ using System.Text.Json;
 using Jellyfin.Extensions.Json;
 using Jellyfin.Plugin.LiveTvCategories.Controllers;
 using Jellyfin.Plugin.LiveTvCategories.Services;
+using Jellyfin.Plugin.LiveTvCategories.WebClient;
 using MediaBrowser.Common;
 using MediaBrowser.Common.Api;
 using MediaBrowser.Model.Dto;
@@ -97,15 +98,17 @@ public sealed class LiveTvCategoriesControllerTests
     [Fact]
     public void CompatibilityReportsSafeContractAndDoesNotContainChannelDataOrProviderSecrets()
     {
-        var host = InterfaceStub<IApplicationHost>.Create((method, _) => method.Name == "get_ApplicationVersion" ? new Version(12, 2, 0, 0) : null);
+        var manifest = WebCompatibilityManifest.Current;
+        var version = Version.Parse(manifest.ApiSupportedServerVersions.Last());
+        var host = InterfaceStub<IApplicationHost>.Create((method, _) => method.Name == "get_ApplicationVersion" ? version : null);
         var response = new LiveTvCategoryCompatibilityController(new FakeAdapter(), host).GetCompatibility().Value!;
         Assert.Equal("1", response.ApiContractVersion);
-        Assert.Equal("12.2.0.0", response.ServerVersion);
-        Assert.Equal("12.0.0", response.ApiBaselineVersion);
-        Assert.Equal("12.x", response.ApiCompatibilityFamily);
+        Assert.Equal(version.ToString(), response.ServerVersion);
+        Assert.Equal(manifest.ServerApiVersion, response.ApiBaselineVersion);
+        Assert.Equal($"{version.Major}.x", response.ApiCompatibilityFamily);
         Assert.True(response.ApiServerVersionTested);
-        Assert.Equal(3, response.ApiTestedServerVersions.Count);
-        Assert.Equal("12.2.0.0", Assert.Single(response.BundledWebSupportedServerVersions));
+        Assert.Equal(manifest.ApiSupportedServerVersions, response.ApiTestedServerVersions);
+        Assert.Equal(manifest.SupportedServerVersions, response.BundledWebSupportedServerVersions);
         Assert.Contains("independentUi", response.Features);
         var names = typeof(LiveTvCategoryCompatibility).GetProperties().Select(property => property.Name).ToArray();
         Assert.DoesNotContain(names, name => name.Contains("Token") || name.Contains("Url") || name.Contains("ChannelCount"));
@@ -114,17 +117,19 @@ public sealed class LiveTvCategoriesControllerTests
     [Fact]
     public void CompatibilityWireNamesStayStableWithBothActualJellyfinSerializerProfiles()
     {
-        var host = InterfaceStub<IApplicationHost>.Create((method, _) => method.Name == "get_ApplicationVersion" ? new Version(12, 2, 0, 0) : null);
+        var manifest = WebCompatibilityManifest.Current;
+        var version = Version.Parse(manifest.ApiSupportedServerVersions.Last());
+        var host = InterfaceStub<IApplicationHost>.Create((method, _) => method.Name == "get_ApplicationVersion" ? version : null);
         var controller = new LiveTvCategoryCompatibilityController(new FakeAdapter(), host);
         foreach (var options in new[] { JsonDefaults.PascalCaseOptions, JsonDefaults.CamelCaseOptions })
         {
             using var json = JsonDocument.Parse(JsonSerializer.Serialize(controller.GetCompatibility().Value, options));
             Assert.Equal("1", json.RootElement.GetProperty("apiContractVersion").GetString());
-            Assert.Equal("12.2.0.0", json.RootElement.GetProperty("serverVersion").GetString());
-            Assert.Equal("12.0.0", json.RootElement.GetProperty("apiBaselineVersion").GetString());
-            Assert.Equal("12.x", json.RootElement.GetProperty("apiCompatibilityFamily").GetString());
+            Assert.Equal(version.ToString(), json.RootElement.GetProperty("serverVersion").GetString());
+            Assert.Equal(manifest.ServerApiVersion, json.RootElement.GetProperty("apiBaselineVersion").GetString());
+            Assert.Equal($"{version.Major}.x", json.RootElement.GetProperty("apiCompatibilityFamily").GetString());
             Assert.True(json.RootElement.GetProperty("apiServerVersionTested").GetBoolean());
-            Assert.Equal(3, json.RootElement.GetProperty("apiTestedServerVersions").GetArrayLength());
+            Assert.Equal(manifest.ApiSupportedServerVersions.Count, json.RootElement.GetProperty("apiTestedServerVersions").GetArrayLength());
             Assert.True(json.RootElement.TryGetProperty("bundledWebEnabled", out _));
             Assert.Equal(JsonValueKind.Array, json.RootElement.GetProperty("features").ValueKind);
             Assert.False(json.RootElement.TryGetProperty("ApiContractVersion", out _));
@@ -135,20 +140,24 @@ public sealed class LiveTvCategoriesControllerTests
         }
     }
 
+    public static IEnumerable<object[]> ApiVersionCases()
+    {
+        var versions = WebCompatibilityManifest.Current.ApiSupportedServerVersions.Select(Version.Parse).ToArray();
+        foreach (var version in versions) yield return new object[] { version.ToString(), true };
+        var highest = versions.Max()!;
+        yield return new object[] { new Version(highest.Major, highest.Minor + 1, 0, 0).ToString(), false };
+        yield return new object[] { new Version(highest.Major + 1, 0, 0, 0).ToString(), false };
+    }
+
     [Theory]
-    [InlineData("12.0.0.0", true)]
-    [InlineData("12.1.0.0", true)]
-    [InlineData("12.2.0.0", true)]
-    [InlineData("12.3.0.0", false)]
-    [InlineData("13.0.0.0", false)]
+    [MemberData(nameof(ApiVersionCases))]
     public void ApiCompatibilityReportsOnlyProvenVersionsNotEveryVersionInTheFamily(string version, bool tested)
     {
         var host = InterfaceStub<IApplicationHost>.Create((method, _) => method.Name == "get_ApplicationVersion" ? Version.Parse(version) : null);
         var response = new LiveTvCategoryCompatibilityController(new FakeAdapter(), host).GetCompatibility().Value!;
         Assert.Equal(tested, response.ApiServerVersionTested);
-        Assert.Equal("12.x", response.ApiCompatibilityFamily);
-        Assert.DoesNotContain("12.3.0.0", response.ApiTestedServerVersions);
-        Assert.DoesNotContain("13.0.0.0", response.ApiTestedServerVersions);
+        Assert.Equal($"{Version.Parse(WebCompatibilityManifest.Current.ServerApiVersion).Major}.x", response.ApiCompatibilityFamily);
+        if (!tested) Assert.DoesNotContain(version, response.ApiTestedServerVersions);
     }
 
     private static LiveTvCategoriesController CreateController(ILiveTvCategoryIndex index, FakeAdapter adapter) => new(index, adapter)

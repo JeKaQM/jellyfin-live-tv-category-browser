@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 
-import { categoryPageSize, normalizeCategories } from '../patches/jellyfin-web-12.2/src/apps/legacy/controllers/livetv/livetvcategoriesModel.js';
-import { categoryIcon, createIcon } from '../patches/jellyfin-web-12.2/src/apps/legacy/controllers/livetv/livetvcategoriesIcons.js';
-
 const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const overlayRoot = path.join(webRoot, 'patches/jellyfin-web-12.2');
+const metadata = JSON.parse(await readFile(path.join(webRoot, 'compatibility.json'), 'utf8'));
+const overlayRoot = path.resolve(webRoot, '..', metadata.overlayDirectory ?? `web/patches/jellyfin-web-${metadata.releaseLine}`);
+const legacyRoot = path.join(overlayRoot, 'src/apps/legacy/controllers/livetv');
+const { categoryPageSize, normalizeCategories } = await import(pathToFileURL(path.join(legacyRoot, 'livetvcategoriesModel.js')));
+const { categoryIcon, createIcon } = await import(pathToFileURL(path.join(legacyRoot, 'livetvcategoriesIcons.js')));
 const readOwned = relative => readFile(path.join(overlayRoot, 'src/apps/legacy/controllers/livetv', relative), 'utf8');
 
 test('legacy category controller retains context, cancellation and destruction handling', async () => {

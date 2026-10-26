@@ -1,8 +1,8 @@
 # Headless category-bridge development
 
-Plugin `0.6.0.0` builds with .NET 10 against the minimum tested Jellyfin `12.0.0` packages. The same DLL has passed real-server and real-browser checks on `12.0.0`, `12.1.0` and `12.2.0`. Future ABI compatibility is not guaranteed.
+Plugin `0.7.0.0` builds with .NET 10 against the minimum tested Jellyfin `12.0.0` packages. Release checks run the same DLL on `12.0.0`, `12.1.0`, `12.2.0` and `12.3.0`. Future ABI compatibility is not guaranteed.
 
-For production, use the [catalog package](catalog-installation.md). A DLL-only manual install supplies the API; adding the published `category-browser/` directory also supplies the independent screen. Full Programmes integration additionally needs the pinned `web/` tree and is enabled only on `12.2.0`.
+For production, use the [catalog package](catalog-installation.md). A DLL-only manual install supplies the API; adding the published `category-browser/` directory also supplies the independent screen. Full Programmes integration additionally needs the pinned `web/` tree and is enabled only on explicitly tested Servers `12.2.0` and `12.3.0`.
 
 ## Build
 
@@ -35,11 +35,11 @@ sudo docker run --rm --user "$(id -u):$(id -g)" \
 
 Locate the native plugin directory from Jellyfin's configured data directory, or inspect the container mount that supplies `/config`; its plugins directory is normally `/config/plugins` inside the container. Do not copy into a guessed system path.
 
-Stop Jellyfin. Create a dedicated `Live TV Categories_0.6.0.0` directory under the actual plugin root, copy the DLL and `category-browser/` from `artifacts/plugin`, and give the Jellyfin service/container user access to that directory. Jellyfin must be able to create `meta.json` on first startup. Disable earlier copies of the same plugin, then restart.
+Stop Jellyfin. Create a dedicated `Live TV Categories_0.7.0.0` directory under the actual plugin root, copy the DLL and `category-browser/` from `artifacts/plugin`, and give the Jellyfin service/container user access to that directory. Jellyfin must be able to create `meta.json` on first startup. Disable earlier copies of the same plugin, then restart.
 
 Do not manually overwrite stock Jellyfin Web. Omitting `web/` deliberately leaves it active. Browse the independent page at `/LiveTvCategories/ui/`, including the server's configured BaseUrl.
 
-Verify **Dashboard → Plugins** shows version `0.6.0.0` without a restart pending. Logs should identify the plugin and independent-browser route; a bundled-Web mismatch warning on 12.0 or 12.1 is expected.
+Verify **Dashboard → Plugins** shows version `0.7.0.0` without a restart pending. Logs should identify the plugin and independent-browser route; a bundled-Web mismatch warning on 12.0 or 12.1 is expected.
 
 ## API smoke test
 
@@ -63,17 +63,18 @@ Adjust the origin and BaseUrl for the actual server. Use HTTPS for remote creden
 
 ## Real-server and browser checks
 
-The Windows smoke harness starts an isolated official Jellyfin server with temporary accounts and an M3U fixture, checks authentication, ordinary-user access, administrator diagnostics, paging and cached-permission revocation, then exercises actual browser sign-in, channel handoff, Back/focus and sign-out.
+The Windows smoke harness starts an isolated official Jellyfin server with temporary accounts and an M3U fixture, checks authentication, ordinary-user access, administrator diagnostics, paging and cached-permission revocation, then exercises actual browser sign-in, channel handoff, Back/focus and sign-out. On integrated versions it also checks modern and TV layouts, page-two restoration and SVG category controls.
 
 ```powershell
 npm ci
 npx playwright install chromium
+./scripts/smoke-server.ps1 -ServerVersion 12.3.0
 ./scripts/smoke-server.ps1 -ServerVersion 12.2.0
 ./scripts/smoke-server.ps1 -ServerVersion 12.1.0 -BasePath /jellyfin
 ./scripts/smoke-server.ps1 -ServerVersion 12.0.0
 ```
 
-Use the same minimum-ABI plugin output for all three runs. The harness uses a fresh isolated data directory and stops only the server it starts. It does not modify a production Jellyfin installation.
+Use the same minimum-ABI plugin output for all four runs. The harness uses a fresh isolated data directory and stops only the server it starts. It does not modify a production Jellyfin installation.
 
 ## Health and failure handling
 

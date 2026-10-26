@@ -13,6 +13,18 @@ permissions:
   contents: read
 
 jobs:
+  support-declaration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.x'
+      - name: Detect a new stable Server or Web release requiring review
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/check-stable-support.mjs
+
   matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -46,8 +58,11 @@ jobs:
           npm run test:browser
       - name: Prepare checked Web integration
         run: bash scripts/prepare-jellyfin-web.sh
+      - name: Resolve the declared Web source
+        id: web-source
+        run: echo "directory=build/jellyfin-web-$(node -p "JSON.parse(require('fs').readFileSync('web/compatibility.json','utf8')).releaseLine")" >> "$GITHUB_OUTPUT"
       - name: Validate and build integrated Web
-        working-directory: build/jellyfin-web-12.2
+        working-directory: ${{ steps.web-source.outputs.directory }}
         run: |
           npm ci
           npm run build:check
@@ -56,11 +71,17 @@ jobs:
           npm run stylelint
           npm run build:production
           npm run escheck
+      - name: Stamp the compiled Web identity and asset hashes
+        env:
+          WEB_SOURCE: ${{ steps.web-source.outputs.directory }}
+        run: node scripts/web-build-identity.mjs stamp "$WEB_SOURCE" "$WEB_SOURCE/dist"
       - name: Build the single minimum-ABI backend
+        env:
+          WEB_SOURCE: ${{ steps.web-source.outputs.directory }}
         run: |
           bash scripts/build-plugin.sh
           mkdir -p artifacts/plugin/web
-          cp -a build/jellyfin-web-12.2/dist/. artifacts/plugin/web/
+          cp -a "$WEB_SOURCE/dist/." artifacts/plugin/web/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: verified-runtime

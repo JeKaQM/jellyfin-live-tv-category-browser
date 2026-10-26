@@ -35,6 +35,12 @@ async function noSymlinks(base, relativePath) {
     }
 }
 
+// Owned category modules follow a stable path; the Jellyfin release pin may move
+// independently. Keep the old default for historical metadata and test fixtures.
+export function resolveOverlayDirectory(metadata, projectRoot = root) {
+    return safePath(projectRoot, metadata.overlayDirectory ?? `web/patches/jellyfin-web-${metadata.releaseLine}`);
+}
+
 async function ownedFiles(base, relative = 'src') {
     const files = [];
     for (const entry of await readdir(safePath(base, relative), { withFileTypes: true })) {
@@ -75,8 +81,13 @@ export async function prepareSource({ sourceDir, overlayDir, metadata }) {
             if (!headers.length || headers.some(relative => !Object.hasOwn(metadata.upstreamHashes, relative))) {
                 throw new Error(`Patch contains unmanaged paths: ${patchName}`);
             }
-            git(stage, ['apply', '--check', '--whitespace=error', patchFile]);
-            git(stage, ['apply', '--whitespace=error', patchFile]);
+            // Git for Windows may check the patch out as CRLF while `git show`
+            // supplies LF source. Normalize only the staged patch, never the
+            // caller's files, so preparation behaves identically on both hosts.
+            const stagedPatch = path.join(stage, `integration-input-${randomUUID()}.patch`);
+            await writeFile(stagedPatch, canonical(patch));
+            git(stage, ['apply', '--check', '--whitespace=error', stagedPatch]);
+            git(stage, ['apply', '--whitespace=error', stagedPatch]);
         }
 
         // The untouched legacy template is also checked/restored when migrating a known old overlay.
@@ -146,7 +157,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     } else {
         const sourceDir = path.resolve(process.argv[2]);
         try {
-            const result = await prepareSource({ sourceDir, overlayDir: path.join(root, `web/patches/jellyfin-web-${metadata.releaseLine}`), metadata });
+            const overlayDir = resolveOverlayDirectory(metadata);
+            await noSymlinks(root, path.relative(root, overlayDir).split(path.sep).join('/'));
+            const result = await prepareSource({ sourceDir, overlayDir, metadata });
             console.log(`Prepared Jellyfin Web ${result.version}: ${result.changedFiles} changed, ${result.managedFiles} managed files`);
         } catch (error) {
             console.error(error.message);

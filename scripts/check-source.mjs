@@ -10,6 +10,6 @@ async function checkDirectory(directory) {
     }
 }
 
-for (const directory of ['prototype', 'scripts', 'web/src', 'web/standalone', 'web/patches']) {
+for (const directory of ['prototype', 'scripts', 'web/src', 'web/standalone', 'web/patches', 'web/integration']) {
     await checkDirectory(directory);
 }

@@ -5,9 +5,10 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const metadata = JSON.parse(await readFile(path.join(webRoot, 'compatibility.json'), 'utf8'));
 const modernRoot = path.join(
-    webRoot,
-    'patches/jellyfin-web-12.2/src/apps/modern/features/libraries');
+    webRoot, '..', metadata.overlayDirectory ?? `web/patches/jellyfin-web-${metadata.releaseLine}`,
+    'src/apps/modern/features/libraries');
 
 const readModern = relativePath => readFile(path.join(modernRoot, relativePath), 'utf8');
 
@@ -25,6 +26,10 @@ test('modern category navigation is URL-backed and restores focused channel cont
 
     assert.match(navigation, /CATEGORY_ID_PARAM = 'categoryId'/);
     assert.match(navigation, /CATEGORY_START_INDEX_PARAM = 'categoryStartIndex'/);
+    assert.match(navigation, /CATEGORY_FOCUS_HISTORY_STATE = 'liveTvCategoryFocusedCategoryId'/);
+    assert.match(view, /data-category-id=\{category\.id\}/);
+    assert.match(view, /rememberCategoryInHistory\(window\.history\.state, location\.state, selectedCategoryId\)/);
+    assert.match(view, /findCategoryFocusTarget\(contentRef\.current, focusedCategoryId\)/);
     assert.match(view, /setSearchParams\(nextParams, \{ state: nextState \}\)/);
     assert.match(view, /setSearchParams\(nextParams, \{[\s\S]*replace: true/);
     assert.match(view, /navigate\(-1\)/);

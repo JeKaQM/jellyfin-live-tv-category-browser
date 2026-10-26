@@ -1,5 +1,5 @@
 param(
-    [string]$ServerVersion = '12.2.0',
+    [string]$ServerVersion,
     [string]$ServerDirectory,
     [string]$PluginDirectory = 'artifacts/plugin',
     [string]$BasePath = '',
@@ -9,7 +9,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $metadata = Get-Content (Join-Path $projectRoot 'web/compatibility.json') -Raw | ConvertFrom-Json
-if ($ServerVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a complete numeric ServerVersion, such as 12.2.0' }
+if ([string]::IsNullOrWhiteSpace($ServerVersion)) { $ServerVersion = $metadata.serverWebVersion }
+if ($ServerVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a complete numeric ServerVersion, such as 12.3.0' }
 if ($BasePath -and $BasePath -notmatch '^/[a-zA-Z0-9_-]+$') { throw 'BasePath must be empty or one safe path segment' }
 if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) { throw 'The selected test port is already in use' }
 $line = ($ServerVersion -split '\.')[0..1] -join '.'
@@ -57,7 +58,8 @@ foreach ($entry in @(@('sport', 'Sports', 'Smoke Sport'), @('world', 'Café & Wo
 </NetworkConfiguration>
 "@)
 $baseUrl = "http://127.0.0.1:$Port$BasePath"
-$clientHeader = 'MediaBrowser Client="LiveTvCategoriesTests", Device="Smoke", DeviceId="ltvc-ci-smoke", Version="0.6.0.0"'
+$releaseVersion = ([xml](Get-Content (Join-Path $projectRoot 'Directory.Build.props') -Raw)).Project.PropertyGroup.Version
+$clientHeader = 'MediaBrowser Client="LiveTvCategoriesTests", Device="Smoke", DeviceId="ltvc-ci-smoke", Version="' + $releaseVersion + '"'
 $headers = $null
 $process = $null
 $checks = 0
@@ -89,8 +91,9 @@ try {
     $ui = Invoke-WebRequest -Uri "$baseUrl/LiveTvCategories/ui/" -SkipHttpErrorCheck
     Assert-Test (($ui.Headers['Cache-Control'] -join ',') -match 'no-store') 'Independent UI does not keep stale upgrade assets'
     $web = Invoke-WebRequest -Uri "$baseUrl/web/index.html" -SkipHttpErrorCheck
-    $expectedBundledWeb = $ServerVersion -eq $metadata.serverWebVersion -and (Test-Path -LiteralPath (Join-Path $PluginDirectory 'web/index.html'))
-    Assert-Test ((-not [string]::IsNullOrWhiteSpace(($web.Headers['X-Live-TV-Categories-Web'] -join ''))) -eq $expectedBundledWeb) 'Full Web replacement remains restricted to the exact tested version'
+    $allowedWebVersion = @($metadata.supportedServerVersions | Where-Object { [version]$_ -eq [version]($ServerVersion + '.0') }).Count -gt 0
+    $expectedBundledWeb = $allowedWebVersion -and (Test-Path -LiteralPath (Join-Path $PluginDirectory 'web/index.html'))
+    Assert-Test ((-not [string]::IsNullOrWhiteSpace(($web.Headers['X-Live-TV-Categories-Web'] -join ''))) -eq $expectedBundledWeb) 'Full Web replacement remains restricted to explicitly tested server versions'
     Assert-Test ((Request-Status '/LiveTvCategories') -eq 401) 'Category API requires authentication'
     Assert-Test ((Request-Status '/LiveTvCategories/Compatibility') -eq 401) 'Compatibility report requires authentication'
     Invoke-RestMethod -Uri "$baseUrl/Startup/User" | Out-Null

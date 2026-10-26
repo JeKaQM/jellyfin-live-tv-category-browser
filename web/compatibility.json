@@ -1,20 +1,23 @@
 {
   "schemaVersion": 1,
-  "releaseLine": "12.2",
-  "serverWebVersion": "12.2.0",
+  "releaseLine": "12.3",
+  "overlayDirectory": "web/integration",
+  "serverWebVersion": "12.3.0",
   "targetAbi": "12.0.0.0",
   "serverApiVersion": "12.0.0",
-  "apiSupportedServerVersions": ["12.0.0.0", "12.1.0.0", "12.2.0.0"],
+  "apiSupportedServerVersions": ["12.0.0.0", "12.1.0.0", "12.2.0.0", "12.3.0.0"],
   "targetFramework": "net10.0",
-  "tag": "v12.2",
-  "commit": "61b1f890365ad15138e943e694af723c1d47df2a",
+  "tag": "v12.3",
+  "commit": "c06cb17b274c10f9015412305edb0afdc010ae7a",
   "supportedServerVersions": [
-    "12.2.0.0"
+    "12.2.0.0",
+    "12.3.0.0"
   ],
   "probeServerVersions": [
     "12.0.0",
     "12.1.0",
-    "12.2.0"
+    "12.2.0",
+    "12.3.0"
   ],
   "patches": [
     "integration.patch"
@@ -45,7 +48,14 @@
       "2b12c639dfb4fd9bdbb8dfe56fec6264cc6c4773",
       "f6029930b2ac876e2f55531dde3cfaedca9a0355",
       "f3db757537e793c17b10ba162aa8ac9729a6a31d",
-      "2a98888feac2fb139fa1687413925631cb3de9f4"
+      "2a98888feac2fb139fa1687413925631cb3de9f4",
+      "3bbf3720f2fdb9e78cdf035b3b3ee43bd89e6928"
+    ],
+    "src/apps/modern/features/libraries/utils/liveTvCategoryNavigation.ts": [
+      "56280afc0da9c60bebd779b2b43623923d291905"
+    ],
+    "src/apps/modern/features/libraries/utils/liveTvCategoryNavigation.test.ts": [
+      "bd4c1b43c5c6a9e8083fba57308a44ddfd089d41"
     ],
     "src/apps/legacy/controllers/livetv/livetvcategories.scss": [
       "adb821a0ca977ac7d58e3e0d9d20cafd0a7291a0"
