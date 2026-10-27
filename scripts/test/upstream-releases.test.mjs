@@ -53,7 +53,7 @@ test('catalog history keeps all published entries and rejects duplicates, future
     const version = (await readFile(new URL('../../Directory.Build.props', import.meta.url), 'utf8')).match(/<Version>([^<]+)<\/Version>/)[1];
     assert.equal(validateCatalogHistory(history, version), history);
     const published = JSON.parse(await readFile(new URL('../../build/release-verify-v0.6.0.0/manifest.json', import.meta.url), 'utf8').catch(() => 'null'));
-    if (published) assert.deepEqual(history, published[0].versions);
+    if (published) assert.deepEqual(history.slice(-published[0].versions.length), published[0].versions);
     assert.throws(() => validateCatalogHistory([history[0], history[0]], version), /unique/);
     assert.throws(() => validateCatalogHistory(history, history[0].version), /older/);
     assert.throws(() => validateCatalogHistory([{ ...history[0], checksum: 'bad' }], version), /Invalid historical/);

@@ -1,23 +1,25 @@
 {
   "schemaVersion": 1,
-  "releaseLine": "12.3",
+  "releaseLine": "12.4",
   "overlayDirectory": "web/integration",
-  "serverWebVersion": "12.3.0",
+  "serverWebVersion": "12.4.0",
   "targetAbi": "12.0.0.0",
   "serverApiVersion": "12.0.0",
-  "apiSupportedServerVersions": ["12.0.0.0", "12.1.0.0", "12.2.0.0", "12.3.0.0"],
+  "apiSupportedServerVersions": ["12.0.0.0", "12.1.0.0", "12.2.0.0", "12.3.0.0", "12.4.0.0"],
   "targetFramework": "net10.0",
-  "tag": "v12.3",
-  "commit": "c06cb17b274c10f9015412305edb0afdc010ae7a",
+  "tag": "v12.4",
+  "commit": "0a580ce8df89282dfd120b6d5efb8e106da23bd5",
   "supportedServerVersions": [
     "12.2.0.0",
-    "12.3.0.0"
+    "12.3.0.0",
+    "12.4.0.0"
   ],
   "probeServerVersions": [
     "12.0.0",
     "12.1.0",
     "12.2.0",
-    "12.3.0"
+    "12.3.0",
+    "12.4.0"
   ],
   "patches": [
     "integration.patch"

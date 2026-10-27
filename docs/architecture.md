@@ -19,7 +19,7 @@ Streams, transcoding, guide refresh, recording and DVR stay under Jellyfin's con
 
 M3U `group-title` becomes tuner-side `ChannelInfo.ChannelGroup`; it is not persisted as a group on `LiveTvChannel`, and the ordinary channel endpoint does not expose a group filter. The adapter matches cached tuner channel identifiers to persisted Jellyfin channels so the scan remains server-side.
 
-The `0.7.0.1` DLL is built against the minimum tested `12.0.0` packages. Release checks run it unchanged on `12.0.0`, `12.1.0`, `12.2.0` and `12.3.0`. This is an explicit tested set, not a promise that a future Jellyfin ABI will load the DLL.
+The `0.8.0.0` DLL is built against the minimum tested `12.0.0` packages. Release checks run it unchanged on `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0` and `12.4.0`. This is an explicit tested set, not a promise that a future Jellyfin ABI will load the DLL.
 
 ## Identity and pagination
 
@@ -49,13 +49,13 @@ Static assets use no-store cache headers and a restrictive same-origin content s
 
 ## Minimal Web integration
 
-Only the Programmes content is replaced in Jellyfin Web `12.3.0`; the other top-level Live TV tabs and existing card/playback actions stay intact. Two small checked hooks connect upstream `livetvsuggested.js` and `PageTabContent.tsx` to owned category modules in version-neutral `web/integration/`. Upstream legacy HTML is unchanged. The protected inputs did not change from Web 12.2 to 12.3, so the integration hooks were reused without copying an entire new overlay.
+Only the Programmes content is replaced in Jellyfin Web `12.4.0`; the other top-level Live TV tabs and existing card/playback actions stay intact. Two small checked hooks connect upstream `livetvsuggested.js` and `PageTabContent.tsx` to owned category modules in version-neutral `web/integration/`. Upstream legacy HTML is unchanged. The protected inputs did not change from Web 12.2 through 12.4, so the integration hooks were reused without copying an entire new overlay. The 12.4 build includes upstream SDK 1.0.2.
 
 Owned modules isolate API calls, normalization, paging, navigation and SVG controls. Modern navigation records category/page state in the URL; legacy controllers preserve equivalent in-page state. Both restore category, page and focus after channel details.
 
 `web/compatibility.json` is the central declaration for the exact tag/commit, integration source directory, protected source hashes, target ABI and explicit server allowlist. Preparation verifies all managed input before writes, supports repeat runs and known prior overlays, rolls back incomplete writes and refuses unknown customizations. Build provenance ties the compiled Web output to this declaration and integration source; packaging rejects missing or mismatched provenance instead of trusting any `index.html` directory.
 
-Catalog ZIPs still include the complete pinned Web build under `web/` for seamless integration on the tested Server 12.2/12.3 combinations. Jellyfin treats catalog `targetAbi` as a minimum, so a separate strict startup guard prevents this full client from being served on `12.0.0`, `12.1.0` or an unknown version. Missing Web files also leave stock Web active. The independent browser remains separate from that guard.
+Catalog ZIPs still include the complete pinned Web build under `web/` for seamless integration on the tested Server 12.2/12.3/12.4 combinations. Jellyfin treats catalog `targetAbi` as a minimum, so a separate strict startup guard prevents this full client from being served on `12.0.0`, `12.1.0` or an unknown version. Missing Web files also leave stock Web active. The independent browser remains separate from that guard.
 
 ## Health and continuous checks
 

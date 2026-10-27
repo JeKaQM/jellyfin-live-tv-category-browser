@@ -2,7 +2,13 @@
 
 Compatibility has three separate meanings: the DLL loads and its API works, the independent page works, and the integrated Web view works. A successful backend probe alone does not establish the third.
 
-## What changed in 12.3
+## What changed in 12.4
+
+Jellyfin [Server 12.4](https://github.com/jellyfin/jellyfin/releases/tag/v12.4) and [Web 12.4](https://github.com/jellyfin/jellyfin-web/releases/tag/v12.4) were released on 26 October 2026. Server updates its .NET dependencies to 10.0.14; Web updates `@jellyfin/sdk` from 1.0.1 to 1.0.2. The server changes do not alter this plugin's Live TV/authentication interfaces, and all three protected Web inputs remain unchanged. The shared integration can be reused, but the compiled Web client must be rebuilt from the new source and lockfile to include the dependency update.
+
+Version 0.8 retains the minimum-12.0 API build, adds Server 12.4 to the backend and integrated-browser test sets, and bundles Web 12.4. The existing drift check correctly reports a new stable release as unsupported until its declarations are reviewed. A dependency-only upstream change is not permission to skip the fresh build, provenance verification, modern/TV browser checks or older-server regression runs.
+
+## Earlier 12.3 changes
 
 Jellyfin [Server 12.3](https://github.com/jellyfin/jellyfin/releases/tag/v12.3) and [Web 12.3](https://github.com/jellyfin/jellyfin-web/releases/tag/v12.3) were released on 23 October 2026. The server changes did not alter this plugin's Live TV/authentication interfaces. The three protected integration inputs were unchanged. Web updated its SDK to 1.0.1 and changed library titles, played-state refresh and remembered Live TV tabs; routes should retain `collectionType=livetv` and use `tab=0` for an explicit Programmes entry.
 
@@ -21,7 +27,7 @@ The old guard correctly left stock Web active on an untested version, but the sc
 
 ## Dependency advisories are separate from compatibility
 
-The Web bundle retains the official 12.3 dependency lock. An audit is not clean merely because compilation and browser checks pass. The 26 October review found inherited advisories, including build/install-only `tar` dependencies and browser libraries; advisory severity alone does not establish browser reachability.
+The Web bundle retains the official 12.4 dependency lock, including its SDK 1.0.2 update. An audit is not clean merely because compilation and browser checks pass. The earlier 12.3 review found inherited advisories, including build/install-only `tar` dependencies and browser libraries; advisory severity alone does not establish browser reachability. Updating the Jellyfin pin does not by itself resolve those findings or establish that every dependency is safe.
 
 For example, upstream PDF loading explicitly uses `isEvalSupported: false`, the documented mitigation for [the PDF.js advisory](https://github.com/advisories/GHSA-wgrm-67xf-hhpq). The audited optional native-canvas installer chain is not part of the browser bundle. Other findings, including [markdown rendering denial of service](https://github.com/advisories/GHSA-gfr2-rv44-r23c), still require upstream dependency maintenance; this release does not claim to fix every upstream advisory. The independent category page has no third-party runtime dependencies.
 

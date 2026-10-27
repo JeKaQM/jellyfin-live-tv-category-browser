@@ -1,11 +1,11 @@
 openapi: 3.0.3
 info:
   title: Jellyfin Live TV Categories
-  version: 0.7.0.1
+  version: 0.8.0.0
   description: >-
     Category contract version 1. One minimum-12.0 ABI DLL is runtime-tested on
-    Jellyfin 12.0, 12.1, 12.2 and 12.3. Bundled Web 12.3 integration is
-    restricted to explicitly tested Servers 12.2 and 12.3; future server
+    Jellyfin 12.0, 12.1, 12.2, 12.3 and 12.4. Bundled Web 12.4 integration is
+    restricted to explicitly tested Servers 12.2, 12.3 and 12.4; future server
     compatibility is not guaranteed.
 paths:
   /LiveTvCategories:

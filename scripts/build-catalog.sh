@@ -139,7 +139,7 @@ manifest = [{
     "category": "Live TV",
     "versions": [{
         "version": version,
-        "changelog": "Jellyfin 12.3 update with shared version-neutral Web integration, verified build identity, retained 12.2 integration, stable-release drift alerts and expanded TV/navigation compatibility checks.",
+        "changelog": "Jellyfin 12.4 compatibility with Web 12.4 and SDK 1.0.2, retaining integrated browsing on 12.2/12.3, TV-safe controls and category Back/focus restoration. One minimum-12.0 DLL tested across Servers 12.0–12.4.",
         "targetAbi": compatibility["targetAbi"],
         "sourceUrl": f"{base_url}/{package_path.name}",
         "checksum": checksum,
