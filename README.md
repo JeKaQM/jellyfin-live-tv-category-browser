@@ -6,10 +6,10 @@
 
 Live TV Categories is an unofficial Jellyfin plugin for category-first browsing of native M3U channels. It derives categories from `group-title` metadata and leaves playback, guide, recording and DVR behavior to Jellyfin.
 
-Version `0.8.0.0` updates the bundled client to Jellyfin Web `12.4.0` and its SDK `1.0.2`. Integrated browsing covers Jellyfin Servers `12.2.0`, `12.3.0` and `12.4.0`; the same minimum-12.0 server plugin and independent browser cover `12.0.0` through `12.4.0`. Integration is enabled only for explicitly tested server versions, not an open-ended version range.
+Version `0.9.0.0` adds an administrator setting to keep using the bundled interface on untested Jellyfin versions. It is off by default and includes a clear risk warning. Tested support remains unchanged: integrated browsing on Servers `12.2.0`, `12.3.0` and `12.4.0`, with the same minimum-12.0 plugin and independent browser on `12.0.0` through `12.4.0`.
 
 > [!IMPORTANT]
-> Install `0.8.0.0` only once it appears in the catalog or [GitHub Releases](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest). A source version or successful compatibility probe is not a published release. Future Jellyfin versions are not automatically supported.
+> Install `0.9.0.0` only once it appears in the catalog or [GitHub Releases](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest). An override permits an untested combination; it does not make that combination supported.
 
 ## Features
 
@@ -18,6 +18,7 @@ Version `0.8.0.0` updates the bundled client to Jellyfin Web `12.4.0` and its SD
 - Normal Jellyfin authentication, current Live TV permissions and per-user channel visibility.
 - An independent category browser that does not depend on Jellyfin Web internals.
 - Version-checked Programmes integration with modern and TV layout checks.
+- An administrator-controlled version override, saved across restarts, with a warning and live opt-out.
 - Owned SVG category controls without icon-font dependencies.
 - Category, page and focus restoration after returning from a channel.
 - Safe recovery from failed tuners, with ordinary Jellyfin browsing available as a fallback.
@@ -27,6 +28,7 @@ Version `0.8.0.0` updates the bundled client to Jellyfin Web `12.4.0` and its SD
 
 | Plugin | Jellyfin Server | Category API and independent browser | Bundled Programmes integration |
 | --- | --- | --- | --- |
+| `0.9.0.0` | `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0`, `12.4.0` | Same minimum-ABI DLL | Tested on `12.2.0`, `12.3.0` and `12.4.0`; optional override for other versions |
 | `0.8.0.0` | `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0`, `12.4.0` | Same minimum-ABI DLL | `12.2.0`, `12.3.0` and `12.4.0`, using tested Web 12.4 |
 | `0.7.0.1` | `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0` | Same minimum-ABI DLL | `12.2.0` and `12.3.0`, using tested Web 12.3 |
 | `0.6.0.0` | `12.0.0`, `12.1.0`, `12.2.0` | Tested with the same minimum-ABI DLL | `12.2.0` only |
@@ -35,9 +37,9 @@ Version `0.8.0.0` updates the bundled client to Jellyfin Web `12.4.0` and its SD
 | `0.3.0.0` | `12.0.0` | Earlier API; no independent browser | `12.0.0` |
 | `0.2.0.0` | `10.11.11` | Earlier API; no independent browser | `10.11.11` |
 
-The `0.8.0.0` package targets the minimum Jellyfin `12.0.0.0` ABI. Release checks exercise the same DLL on all five declared versions, including a configured `/jellyfin` BaseUrl, and integrated browsing in modern and TV layouts on all three supported servers. That does not promise compatibility with an arbitrary newer ABI.
+The `0.9.0.0` package targets the minimum Jellyfin `12.0.0.0` ABI. Release checks exercise the same DLL on all five declared versions, including a configured `/jellyfin` BaseUrl, and integrated browsing in modern and TV layouts on all three supported servers. That does not promise compatibility with an arbitrary newer ABI.
 
-The complete bundled Web 12.4 client is served only on the explicit tested Server `12.2.0`/`12.3.0`/`12.4.0` allowlist. On `12.0.0` and `12.1.0`, stock Jellyfin Web stays active and the independent browser supplies the category screen. On an unknown server version, bundled Web stays disabled; the backend may still need an update. Stock Web files are never overwritten.
+By default, the complete bundled Web 12.4 client is served only on tested Servers `12.2.0`/`12.3.0`/`12.4.0`. Other versions keep stock Web and can use the independent browser if the backend remains compatible. An administrator can explicitly override the Web version restriction using the setting below. Stock Web files are never overwritten.
 
 Android TV, Fire TV and Swiftfin native apps do not gain a native category screen. Clients with a suitable browser can open the independent page. Physical LG/webOS hardware has not been tested; verify your specific TV even though the category controls no longer depend on icon fonts.
 
@@ -58,21 +60,29 @@ https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest/down
 ```
 
 1. Name the repository `Live TV Categories`, save, and open **Catalog**.
-2. Install `0.8.0.0` on one of its five tested Jellyfin 12 versions once that release is listed. Older published entries remain available for their exact versions.
+2. Install `0.9.0.0` on one of its five tested Jellyfin 12 versions once that release is listed. Older published entries remain available for their exact versions.
 3. Restart Jellyfin, then hard-refresh the browser once.
 4. Open `/LiveTvCategories/ui/` on your server. Include the configured BaseUrl, for example `/jellyfin/LiveTvCategories/ui/`.
 5. On Jellyfin `12.2.0`, `12.3.0` or `12.4.0`, you can also use **Live TV → Programmes**.
 
-Successful `0.8.0.0` startup includes:
+Successful `0.9.0.0` startup includes:
 
 ```text
-Loaded plugin: Live TV Categories 0.8.0.0
+Loaded plugin: Live TV Categories 0.9.0.0
 Live TV Categories independent browser is available at .../LiveTvCategories/ui
 ```
 
 On `12.2.0`, `12.3.0` and `12.4.0`, a further message confirms the bundled Web client is being served. A bundled-Web mismatch warning on `12.0.0` or `12.1.0` is expected and does not disable the independent browser.
 
 See the [catalog installation guide](docs/catalog-installation.md) for upgrades, verification and rollback.
+
+## Optional version override
+
+Open **Dashboard → Plugins → Live TV Categories** and enable **Allow bundled interface on untested Jellyfin versions**, then **Save** and hard-refresh your browser. No server restart is required to change this setting. It affects all users of this server's hosted Web client and remains saved across restarts and future upgrades; clear it and save to restore the default version restriction.
+
+**Warning:** this serves the plugin's entire bundled Jellyfin Web interface, which may contain older dependencies or omit fixes in your server's normal Web client. An untested combination can break login, playback, recording controls or the dashboard. Use it at your own risk. The toggle does not fix incompatible server APIs, missing plugin assets or a plugin that Jellyfin cannot load, and it does not change which versions are listed as tested.
+
+If the dashboard becomes unusable, follow the [recovery instructions](docs/catalog-installation.md#version-override-and-recovery). The independent category page remains separate from this setting.
 
 ## Using the category browser
 
@@ -119,7 +129,7 @@ The helper prompts for an administrator API key using hidden input, uses support
 - **Independent page missing:** check the installed `category-browser/` assets; a DLL-only install supplies only the API.
 - **Old Web interface on 12.2/12.3/12.4:** update the plugin, restart, then hard-refresh or clear Jellyfin site data.
 - **Category source unavailable:** use All channels or normal Jellyfin; inspect administrator diagnostics.
-- **Unknown Jellyfin version:** do not force-enable the bundled Web client. Check compatibility results and wait for an explicitly supported release.
+- **Unknown Jellyfin version:** stock Web is the default. Check compatibility results, then decide whether to use the warned administrator override or wait for tested support.
 
 Uninstalling the plugin and restarting restores stock Web without removing tuners, guide data, channels or recordings. See [rollback](docs/catalog-installation.md#rollback).
 
@@ -139,7 +149,7 @@ bash scripts/build-plugin.sh
 Build the complete catalog package:
 
 ```bash
-PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.8.0.0' \
+PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.9.0.0' \
 bash scripts/build-release.sh
 ```
 

@@ -13,7 +13,7 @@ using MediaBrowser.Controller.Configuration;
 namespace Jellyfin.Plugin.LiveTvCategories.WebClient;
 
 /// <summary>
-/// Serves the version-matched Jellyfin Web build bundled beside the plugin assembly.
+/// Serves the bundled Jellyfin Web build on tested versions or after an administrator opts in.
 /// </summary>
 public sealed class PluginWebClientStartupFilter : IStartupFilter
 {
@@ -21,6 +21,7 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
     private readonly IApplicationHost _applicationHost;
     private readonly ILogger<PluginWebClientStartupFilter> _logger;
     private readonly IServerConfigurationManager _serverConfigurationManager;
+    private int _lastBundledWebMode = -1;
 
     public PluginWebClientStartupFilter(
         ILogger<PluginWebClientStartupFilter> logger,
@@ -39,12 +40,10 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
         return app =>
         {
             ConfigureIndependentUi(app);
-            if (!CanServeBundledWeb(_applicationHost.ApplicationVersion))
+            if (WebCompatibilityManifest.Current.SchemaVersion != 1)
             {
                 _logger.LogWarning(
-                    "Live TV Categories bundled Web is disabled because it requires Jellyfin {ExpectedVersion}, but this server is {ActualVersion}",
-                    string.Join(", ", WebCompatibilityManifest.Current.SupportedServerVersions),
-                    _applicationHost.ApplicationVersion);
+                    "Live TV Categories bundled Web is disabled because its compatibility declaration is invalid; the version override cannot bypass this requirement");
                 next(app);
                 return;
             }
@@ -69,33 +68,99 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
             defaultFiles.DefaultFileNames.Clear();
             defaultFiles.DefaultFileNames.Add("index.html");
 
-            app.UseDefaultFiles(defaultFiles);
-            app.UseStaticFiles(new StaticFileOptions
+            // Evaluate the saved preference on each request so saving the setting
+            // can enable or disable the interface without restarting Jellyfin.
+            app.UseWhen(_ =>
             {
-                FileProvider = fileProvider,
-                RequestPath = new PathString(webRequestPath),
-                ContentTypeProvider = new FileExtensionContentTypeProvider(),
-                OnPrepareResponse = context =>
+                var state = GetCurrentBundledWebState(_applicationHost.ApplicationVersion);
+                LogBundledWebState(state, webRequestPath);
+                return state.Enabled;
+            }, branch =>
+            {
+                branch.UseDefaultFiles(defaultFiles);
+                branch.UseStaticFiles(new StaticFileOptions
                 {
-                    context.Context.Response.Headers["X-Live-TV-Categories-Web"] =
-                        typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "unknown";
-                    context.Context.Response.Headers.CacheControl = CacheControlForFile(context.File.Name);
-                }
+                    FileProvider = fileProvider,
+                    RequestPath = new PathString(webRequestPath),
+                    ContentTypeProvider = new FileExtensionContentTypeProvider(),
+                    OnPrepareResponse = context =>
+                    {
+                        context.Context.Response.Headers["X-Live-TV-Categories-Web"] =
+                            typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "unknown";
+                        context.Context.Response.Headers.CacheControl = CacheControlForFile(context.File.Name);
+                    }
+                });
             });
 
-            _logger.LogInformation(
-                "Live TV Categories is serving its bundled Jellyfin Web client from {WebRoot} at {WebRequestPath}",
-                webRoot,
-                webRequestPath);
+            LogBundledWebState(GetCurrentBundledWebState(_applicationHost.ApplicationVersion), webRequestPath);
             next(app);
         };
     }
 
-    internal static bool CanServeBundledWeb(Version applicationVersion)
+    internal static bool CanServeBundledWeb(
+        Version applicationVersion,
+        bool allowUntestedServerVersions = false,
+        WebCompatibilityManifest? manifest = null)
     {
         ArgumentNullException.ThrowIfNull(applicationVersion);
-        return WebCompatibilityManifest.Current.SupportedServerVersions
+        manifest ??= WebCompatibilityManifest.Current;
+        return manifest.SchemaVersion == 1
+            && (allowUntestedServerVersions || IsTestedServerVersion(applicationVersion, manifest));
+    }
+
+    internal static bool IsTestedServerVersion(Version applicationVersion, WebCompatibilityManifest? manifest = null) =>
+        (manifest ?? WebCompatibilityManifest.Current).SupportedServerVersions
             .Any(version => Version.TryParse(version, out var supported) && applicationVersion == supported);
+
+    internal static BundledWebState GetBundledWebState(
+        Version applicationVersion,
+        bool allowUntestedServerVersions,
+        bool hasBundledWebAssets,
+        WebCompatibilityManifest? manifest = null)
+    {
+        var enabled = hasBundledWebAssets && CanServeBundledWeb(applicationVersion, allowUntestedServerVersions, manifest);
+        return new BundledWebState(
+            enabled,
+            allowUntestedServerVersions,
+            enabled && allowUntestedServerVersions && !IsTestedServerVersion(applicationVersion, manifest));
+    }
+
+    internal static BundledWebState GetCurrentBundledWebState(Version applicationVersion) =>
+        GetBundledWebState(
+            applicationVersion,
+            Plugin.Instance?.Configuration.AllowUntestedServerVersions == true,
+            ResolveBundledWebRoot() is not null);
+
+    private void LogBundledWebState(BundledWebState state, string webRequestPath)
+    {
+        var mode = state.VersionOverrideActive ? 2 : state.Enabled ? 1 : 0;
+        if (Interlocked.Exchange(ref _lastBundledWebMode, mode) == mode)
+        {
+            return;
+        }
+
+        if (state.VersionOverrideActive)
+        {
+            _logger.LogWarning(
+                "Live TV Categories administrator override is serving bundled Web {WebVersion} on untested Jellyfin {ActualVersion} at {WebRequestPath}. Compatibility is not established; the older bundled interface can break or omit newer Web fixes. Disable AllowUntestedServerVersions to restore the version guard",
+                WebCompatibilityManifest.Current.ServerWebVersion,
+                _applicationHost.ApplicationVersion,
+                webRequestPath);
+        }
+        else if (state.Enabled)
+        {
+            _logger.LogInformation(
+                "Live TV Categories is serving its bundled Jellyfin Web client on tested Jellyfin {ActualVersion} at {WebRequestPath}",
+                _applicationHost.ApplicationVersion,
+                webRequestPath);
+        }
+        else
+        {
+            _logger.LogWarning(
+                "Live TV Categories bundled Web is disabled on Jellyfin {ActualVersion}; tested versions are {ExpectedVersions}. Administrators can explicitly accept the risks in the plugin settings to override the version restriction",
+                _applicationHost.ApplicationVersion,
+                string.Join(", ", WebCompatibilityManifest.Current.SupportedServerVersions));
+        }
     }
 
     internal static string WebRequestPathForBaseUrl(string? baseUrl)
@@ -217,3 +282,5 @@ public sealed class PluginWebClientStartupFilter : IStartupFilter
         return "public, max-age=3600";
     }
 }
+
+internal readonly record struct BundledWebState(bool Enabled, bool VersionOverrideEnabled, bool VersionOverrideActive);

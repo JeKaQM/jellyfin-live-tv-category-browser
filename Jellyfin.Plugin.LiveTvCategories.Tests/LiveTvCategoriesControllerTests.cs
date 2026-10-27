@@ -109,6 +109,8 @@ public sealed class LiveTvCategoriesControllerTests
         Assert.True(response.ApiServerVersionTested);
         Assert.Equal(manifest.ApiSupportedServerVersions, response.ApiTestedServerVersions);
         Assert.Equal(manifest.SupportedServerVersions, response.BundledWebSupportedServerVersions);
+        Assert.False(response.BundledWebVersionOverrideEnabled);
+        Assert.False(response.BundledWebVersionOverrideActive);
         Assert.Contains("independentUi", response.Features);
         var names = typeof(LiveTvCategoryCompatibility).GetProperties().Select(property => property.Name).ToArray();
         Assert.DoesNotContain(names, name => name.Contains("Token") || name.Contains("Url") || name.Contains("ChannelCount"));
@@ -131,6 +133,8 @@ public sealed class LiveTvCategoriesControllerTests
             Assert.True(json.RootElement.GetProperty("apiServerVersionTested").GetBoolean());
             Assert.Equal(manifest.ApiSupportedServerVersions.Count, json.RootElement.GetProperty("apiTestedServerVersions").GetArrayLength());
             Assert.True(json.RootElement.TryGetProperty("bundledWebEnabled", out _));
+            Assert.False(json.RootElement.GetProperty("bundledWebVersionOverrideEnabled").GetBoolean());
+            Assert.False(json.RootElement.GetProperty("bundledWebVersionOverrideActive").GetBoolean());
             Assert.Equal(JsonValueKind.Array, json.RootElement.GetProperty("features").ValueKind);
             Assert.False(json.RootElement.TryGetProperty("ApiContractVersion", out _));
             using var diagnostics = JsonDocument.Parse(JsonSerializer.Serialize(controller.GetDiagnostics().Value, options));

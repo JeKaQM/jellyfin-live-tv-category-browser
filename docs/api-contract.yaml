@@ -1,12 +1,13 @@
 openapi: 3.0.3
 info:
   title: Jellyfin Live TV Categories
-  version: 0.8.0.0
+  version: 0.9.0.0
   description: >-
     Category contract version 1. One minimum-12.0 ABI DLL is runtime-tested on
     Jellyfin 12.0, 12.1, 12.2, 12.3 and 12.4. Bundled Web 12.4 integration is
-    restricted to explicitly tested Servers 12.2, 12.3 and 12.4; future server
-    compatibility is not guaranteed.
+    enabled by default only on tested Servers 12.2, 12.3 and 12.4. An explicit
+    administrator override can permit untested versions without changing
+    tested support or guaranteeing future server compatibility.
 paths:
   /LiveTvCategories:
     get:
@@ -142,7 +143,7 @@ components:
   schemas:
     Compatibility:
       type: object
-      required: [apiContractVersion, pluginVersion, serverVersion, apiBaselineVersion, compiledApiVersion, apiCompatibilityFamily, apiTestedServerVersions, apiServerVersionTested, adapter, adapterState, bundledWebEnabled, bundledWebSupportedServerVersions, features]
+      required: [apiContractVersion, pluginVersion, serverVersion, apiBaselineVersion, compiledApiVersion, apiCompatibilityFamily, apiTestedServerVersions, apiServerVersionTested, adapter, adapterState, bundledWebEnabled, bundledWebSupportedServerVersions, features, bundledWebVersionOverrideEnabled, bundledWebVersionOverrideActive]
       properties:
         apiContractVersion:
           type: string
@@ -172,6 +173,13 @@ components:
           type: string
         bundledWebEnabled:
           type: boolean
+          description: Effective Web availability, including explicit override and required bundle presence.
+        bundledWebVersionOverrideEnabled:
+          type: boolean
+          description: Saved administrator opt-in to bypass the Web server-version restriction; false by default.
+        bundledWebVersionOverrideActive:
+          type: boolean
+          description: True only when the override is actually permitting an untested server with valid metadata and an available Web bundle. It does not declare that version tested.
         bundledWebSupportedServerVersions:
           type: array
           items:

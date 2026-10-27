@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="../web/compatibility.json" LogicalName="LiveTvCategories.Compatibility.json" />
+    <EmbeddedResource Include="Configuration/configPage.html" />
     <Content Include="../web/standalone/*" Link="category-browser/%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">

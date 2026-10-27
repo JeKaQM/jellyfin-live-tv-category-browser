@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.8.0.0",
+    "changelog": "Jellyfin 12.4 compatibility with Web 12.4 and SDK 1.0.2, retaining integrated browsing on 12.2/12.3, TV-safe controls and category Back/focus restoration. One minimum-12.0 DLL tested across Servers 12.0–12.4.",
+    "targetAbi": "12.0.0.0",
+    "sourceUrl": "https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.8.0.0/Jellyfin.Plugin.LiveTvCategories_0.8.0.0.zip",
+    "checksum": "CA1CB3D09177447880041335447CAF83",
+    "timestamp": "2026-10-27T20:26:04+00:00"
+  },
+  {
     "version": "0.7.0.1",
     "changelog": "Jellyfin 12.3 update with shared version-neutral Web integration, verified build identity, retained 12.2 integration, stable-release drift alerts and expanded TV/navigation compatibility checks.",
     "targetAbi": "12.0.0.0",

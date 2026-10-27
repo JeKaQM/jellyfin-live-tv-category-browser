@@ -19,7 +19,7 @@ Streams, transcoding, guide refresh, recording and DVR stay under Jellyfin's con
 
 M3U `group-title` becomes tuner-side `ChannelInfo.ChannelGroup`; it is not persisted as a group on `LiveTvChannel`, and the ordinary channel endpoint does not expose a group filter. The adapter matches cached tuner channel identifiers to persisted Jellyfin channels so the scan remains server-side.
 
-The `0.8.0.0` DLL is built against the minimum tested `12.0.0` packages. Release checks run it unchanged on `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0` and `12.4.0`. This is an explicit tested set, not a promise that a future Jellyfin ABI will load the DLL.
+The `0.9.0.0` DLL is built against the minimum tested `12.0.0` packages. Release checks run it unchanged on `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0` and `12.4.0`. This is an explicit tested set, not a promise that a future Jellyfin ABI will load the DLL.
 
 ## Identity and pagination
 
@@ -55,7 +55,9 @@ Owned modules isolate API calls, normalization, paging, navigation and SVG contr
 
 `web/compatibility.json` is the central declaration for the exact tag/commit, integration source directory, protected source hashes, target ABI and explicit server allowlist. Preparation verifies all managed input before writes, supports repeat runs and known prior overlays, rolls back incomplete writes and refuses unknown customizations. Build provenance ties the compiled Web output to this declaration and integration source; packaging rejects missing or mismatched provenance instead of trusting any `index.html` directory.
 
-Catalog ZIPs still include the complete pinned Web build under `web/` for seamless integration on the tested Server 12.2/12.3/12.4 combinations. Jellyfin treats catalog `targetAbi` as a minimum, so a separate strict startup guard prevents this full client from being served on `12.0.0`, `12.1.0` or an unknown version. Missing Web files also leave stock Web active. The independent browser remains separate from that guard.
+Catalog ZIPs include the complete pinned Web build under `web/` for the tested Server 12.2/12.3/12.4 combinations. Jellyfin treats catalog `targetAbi` as a minimum, so the default Web policy checks an exact allowlist. Administrators can explicitly bypass that version restriction with `AllowUntestedServerVersions`, which defaults to false and is saved using Jellyfin's standard plugin configuration API. The settings page warns that the entire older bundled interface is served and can break other Jellyfin screens or omit upstream fixes.
+
+The bundled-Web branch evaluates the saved setting per request, allowing live enable/disable followed by a client hard-refresh. Invalid compatibility metadata or missing bundle assets still keep stock Web active. The override does not bypass server authentication, API compatibility or plugin loading. Compatibility reporting keeps the tested version lists unchanged and reports configured and actually-active override states separately. The independent browser remains separate from this policy.
 
 ## Health and continuous checks
 

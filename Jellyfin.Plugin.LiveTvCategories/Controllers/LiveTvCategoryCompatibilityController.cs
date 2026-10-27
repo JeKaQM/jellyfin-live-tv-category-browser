@@ -25,7 +25,10 @@ public sealed class LiveTvCategoryCompatibilityController : ControllerBase
     }
 
     [HttpGet("Compatibility")]
-    public ActionResult<LiveTvCategoryCompatibility> GetCompatibility() => new LiveTvCategoryCompatibility(
+    public ActionResult<LiveTvCategoryCompatibility> GetCompatibility()
+    {
+        var webState = PluginWebClientStartupFilter.GetCurrentBundledWebState(_applicationHost.ApplicationVersion);
+        return new LiveTvCategoryCompatibility(
         "1",
         typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "unknown",
         _applicationHost.ApplicationVersion.ToString(),
@@ -38,10 +41,12 @@ public sealed class LiveTvCategoryCompatibilityController : ControllerBase
             .Any(version => Version.TryParse(version, out var tested) && tested == _applicationHost.ApplicationVersion),
         _adapter.AdapterName,
         _adapter.Diagnostics.State,
-        PluginWebClientStartupFilter.CanServeBundledWeb(_applicationHost.ApplicationVersion)
-            && PluginWebClientStartupFilter.ResolveBundledWebRoot() is not null,
+        webState.Enabled,
         WebCompatibilityManifest.Current.SupportedServerVersions,
-        new[] { "categorySummaries", "pagedChannels", "currentProgram", "independentUi" });
+        new[] { "categorySummaries", "pagedChannels", "currentProgram", "independentUi" },
+        webState.VersionOverrideEnabled,
+        webState.VersionOverrideActive);
+    }
 
     /// <summary>Detailed count-only status is restricted to administrators/API keys.</summary>
     [Authorize(Policy = Policies.RequiresElevation)]
@@ -62,4 +67,6 @@ public sealed record LiveTvCategoryCompatibility(
     [property: JsonPropertyName("adapterState")] string AdapterState,
     [property: JsonPropertyName("bundledWebEnabled")] bool BundledWebEnabled,
     [property: JsonPropertyName("bundledWebSupportedServerVersions")] IReadOnlyList<string> BundledWebSupportedServerVersions,
-    [property: JsonPropertyName("features")] IReadOnlyList<string> Features);
+    [property: JsonPropertyName("features")] IReadOnlyList<string> Features,
+    [property: JsonPropertyName("bundledWebVersionOverrideEnabled")] bool BundledWebVersionOverrideEnabled,
+    [property: JsonPropertyName("bundledWebVersionOverrideActive")] bool BundledWebVersionOverrideActive);

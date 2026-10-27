@@ -1,9 +1,9 @@
 # Jellyfin Web integration and independent browser
 
-Plugin `0.8.0.0` has two interfaces:
+Plugin `0.9.0.0` has two interfaces:
 
 - The independent page at `/LiveTvCategories/ui/` works with the tested backend on Jellyfin `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0` and `12.4.0` without replacing stock Web.
-- The bundled **Live TV → Programmes** integration is built from Jellyfin Web `12.4.0` and is enabled only on explicitly tested Server `12.2.0`, `12.3.0` and `12.4.0`. This is an exact allowlist, not permission for every future 12.x version.
+- The bundled **Live TV → Programmes** integration is built from Jellyfin Web `12.4.0` and defaults to explicitly tested Server `12.2.0`, `12.3.0` and `12.4.0`. The warned administrator setting can permit other versions without expanding tested support.
 
 Both leave channel playback to Jellyfin. Use the [catalog package](catalog-installation.md) for production rather than replacing system Web files.
 
@@ -84,7 +84,9 @@ The previous exact-version guard intentionally kept the 12.2 bundle disabled on 
 
 ## Deployment and recovery
 
-The catalog ZIP contains the DLL, independent-browser assets, full Web build and compatibility declaration. The startup filter serves the independent route first, then serves bundled Web only when the strict allowlist permits it. On older tested servers, a missing Web tree or an unknown server version, stock Web remains active.
+The catalog ZIP contains the DLL, independent-browser assets, full Web build and compatibility declaration. The startup filter serves the independent route first. Its per-request bundled-Web policy allows declared versions, or an explicit saved administrator override. Without the override, other versions keep stock Web. Missing Web assets or invalid compatibility metadata still keep stock Web even with the override enabled.
+
+The plugin settings page is an embedded Jellyfin configuration page and uses Jellyfin's administrator configuration API. Saving `AllowUntestedServerVersions` takes effect without a restart; hard-refresh existing clients when switching. Compatibility reporting distinguishes the saved preference from an override that is actually active. See [override risks and recovery](catalog-installation.md#version-override-and-recovery).
 
 Manual full-Web bind mounts are a development/recovery option only. Record the exact native asset directory or container mount, service identity and recoverable backup before changing deployment. Never copy into a guessed path. A read-only bind mount or custom image is preferable to copying files into a running container.
 

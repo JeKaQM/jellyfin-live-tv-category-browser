@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Live TV Categories</title>
+</head>
+<body>
+    <div id="LiveTvCategoriesConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <h1>Live TV Categories</h1>
+                <p>Keep the tested-version restriction enabled by default, or choose to run the bundled interface on an untested Jellyfin version.</p>
+                <div id="LiveTvCategoriesCompatibilityWarning" role="note" aria-labelledby="LiveTvCategoriesWarningTitle" style="border: 2px solid #d98c24; border-radius: .3em; padding: 1em; margin: 1.5em 0;">
+                    <h2 id="LiveTvCategoriesWarningTitle" style="margin-top: 0;">Warning: untested compatibility</h2>
+                    <p>This override replaces Jellyfin's entire Web interface with the copy bundled by this plugin. After a Jellyfin update, that copy may be older and missing newer fixes, including security fixes. Browsing, playback, sign-in and dashboard controls may stop working.</p>
+                    <p>Enable it only if you accept these risks. It does not make an untested version supported, repair incompatible server APIs, or make the plugin load on an incompatible server.</p>
+                    <p><strong>This is a server-wide setting.</strong> It affects everyone using this server's Web interface and stays enabled across restarts and future Jellyfin upgrades until you turn it off.</p>
+                    <p>To revert, turn the override off, save and hard-refresh Jellyfin in every open tab. If cached files remain, clear the site's cached data and sign in again. If the dashboard no longer opens, stop Jellyfin and disable the override in this plugin's configuration file, or remove this plugin before restarting.</p>
+                </div>
+                <form id="LiveTvCategoriesConfigForm">
+                    <fieldset id="LiveTvCategoriesConfigFields" disabled style="border: 0; padding: 0; margin: 0;">
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label" for="AllowUntestedServerVersions">
+                                <input id="AllowUntestedServerVersions" name="AllowUntestedServerVersions" type="checkbox" is="emby-checkbox" aria-describedby="LiveTvCategoriesCompatibilityWarning LiveTvCategoriesOverrideDescription" />
+                                <span>Allow bundled interface on untested Jellyfin versions</span>
+                            </label>
+                            <div id="LiveTvCategoriesOverrideDescription" class="fieldDescription">Off by default. Turning this on bypasses only the bundled Web version restriction. Save, then hard-refresh Jellyfin in every open tab to load the selected interface. Clear the site's cached data if needed; no server restart is needed.</div>
+                        </div>
+                        <button id="LiveTvCategoriesConfigSave" is="emby-button" type="submit" class="raised button-submit block emby-button"><span>Save</span></button>
+                    </fieldset>
+                    <p id="LiveTvCategoriesConfigError" role="alert" hidden></p>
+                    <p id="LiveTvCategoriesConfigStatus" role="status" hidden></p>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginId = 'a4b2fdc8-cb2a-463b-812a-16e9ea88e12a';
+                var page = document.querySelector('#LiveTvCategoriesConfigPage');
+                var form = page.querySelector('#LiveTvCategoriesConfigForm');
+                var fields = page.querySelector('#LiveTvCategoriesConfigFields');
+                var override = page.querySelector('#AllowUntestedServerVersions');
+                var error = page.querySelector('#LiveTvCategoriesConfigError');
+                var status = page.querySelector('#LiveTvCategoriesConfigStatus');
+
+                function resetMessages() {
+                    error.hidden = true;
+                    error.textContent = '';
+                    status.hidden = true;
+                    status.textContent = '';
+                }
+
+                function showError(message) {
+                    Dashboard.hideLoadingMsg();
+                    error.textContent = message;
+                    error.hidden = false;
+                }
+
+                page.addEventListener('pageshow', function () {
+                    resetMessages();
+                    fields.disabled = true;
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        override.checked = config.AllowUntestedServerVersions === true;
+                        fields.disabled = false;
+                        Dashboard.hideLoadingMsg();
+                    }, function () {
+                        showError('Could not load plugin settings. Reopen this page to try again. No setting has been changed.');
+                    });
+                });
+
+                form.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    if (fields.disabled) return;
+                    var enabled = override.checked;
+                    resetMessages();
+                    fields.disabled = true;
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        config.AllowUntestedServerVersions = enabled;
+                        return ApiClient.updatePluginConfiguration(pluginId, config);
+                    }).then(function (result) {
+                        fields.disabled = false;
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                        status.textContent = enabled
+                            ? 'Saved. The untested-version override is enabled. Hard-refresh all Jellyfin tabs to use the bundled interface; clear the site\'s cached data if needed.'
+                            : 'Saved. The tested-version restriction is restored. Hard-refresh all Jellyfin tabs to apply it; clear the site\'s cached data if needed.';
+                        status.hidden = false;
+                    }, function () {
+                        fields.disabled = false;
+                        showError('Could not save plugin settings. Your change was not confirmed. Try saving again or reopen this page to check the saved setting.');
+                    });
+                });
+            }());
+        </script>
+    </div>
+</body>
+</html>

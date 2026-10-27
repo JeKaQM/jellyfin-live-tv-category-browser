@@ -4,7 +4,8 @@ param(
     [string]$PluginDirectory = 'artifacts/plugin',
     [string]$BasePath = '',
     [int]$Port = 18096,
-    [switch]$SkipBrowser
+    [switch]$SkipBrowser,
+    [switch]$TestVersionOverride
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -12,6 +13,7 @@ $metadata = Get-Content (Join-Path $projectRoot 'web/compatibility.json') -Raw |
 if ([string]::IsNullOrWhiteSpace($ServerVersion)) { $ServerVersion = $metadata.serverWebVersion }
 if ($ServerVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a complete numeric ServerVersion, such as 12.3.0' }
 if ($BasePath -and $BasePath -notmatch '^/[a-zA-Z0-9_-]+$') { throw 'BasePath must be empty or one safe path segment' }
+if ($TestVersionOverride -and $SkipBrowser) { throw 'TestVersionOverride requires the real plugin settings browser flow' }
 if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) { throw 'The selected test port is already in use' }
 $line = ($ServerVersion -split '\.')[0..1] -join '.'
 $artifactVersion = if (($ServerVersion -split '\.')[2] -eq '0') { $line } else { $ServerVersion }
@@ -93,7 +95,10 @@ try {
     $web = Invoke-WebRequest -Uri "$baseUrl/web/index.html" -SkipHttpErrorCheck
     $allowedWebVersion = @($metadata.supportedServerVersions | Where-Object { [version]$_ -eq [version]($ServerVersion + '.0') }).Count -gt 0
     $expectedBundledWeb = $allowedWebVersion -and (Test-Path -LiteralPath (Join-Path $PluginDirectory 'web/index.html'))
-    Assert-Test ((-not [string]::IsNullOrWhiteSpace(($web.Headers['X-Live-TV-Categories-Web'] -join ''))) -eq $expectedBundledWeb) 'Full Web replacement remains restricted to explicitly tested server versions'
+    if ($TestVersionOverride -and ($expectedBundledWeb -or -not (Test-Path -LiteralPath (Join-Path $PluginDirectory 'web/index.html')))) {
+        throw 'TestVersionOverride requires bundled assets and a server outside the tested Web allowlist'
+    }
+    Assert-Test ((-not [string]::IsNullOrWhiteSpace(($web.Headers['X-Live-TV-Categories-Web'] -join ''))) -eq $expectedBundledWeb) 'By default, full Web replacement remains restricted to explicitly tested server versions'
     Assert-Test ((Request-Status '/LiveTvCategories') -eq 401) 'Category API requires authentication'
     Assert-Test ((Request-Status '/LiveTvCategories/Compatibility') -eq 401) 'Compatibility report requires authentication'
     Invoke-RestMethod -Uri "$baseUrl/Startup/User" | Out-Null
@@ -149,13 +154,68 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Real-server browser flow failed' }
         Assert-Test $true 'Real browser login, channel handoff, Back and focus pass'
     }
+    if ($TestVersionOverride) {
+        $pluginId = 'a4b2fdc8-cb2a-463b-812a-16e9ea88e12a'
+        $configurationRoute = "/Plugins/$pluginId/Configuration"
+        $configurationPages = Invoke-RestMethod -Uri "$baseUrl/web/ConfigurationPages" -Headers $headers
+        $registeredPage = @($configurationPages | Where-Object Name -eq 'LiveTvCategoriesConfig')
+        Write-Output ('CHECK: Registered plugin settings: ' + ($registeredPage | Select-Object Name, PluginId | ConvertTo-Json -Compress))
+        Assert-Test ($registeredPage.Count -eq 1 -and ([string]$registeredPage[0].PluginId).Replace('-', '') -eq $pluginId.Replace('-', '')) 'Jellyfin advertises the settings page on the correct Dashboard plugin'
+        $configuration = Invoke-RestMethod -Uri "$baseUrl$configurationRoute" -Headers $headers
+        Assert-Test (-not $configuration.AllowUntestedServerVersions) 'Untested-version override defaults to off'
+        Assert-Test (-not $compatibility.bundledWebVersionOverrideEnabled -and -not $compatibility.bundledWebVersionOverrideActive -and -not $compatibility.bundledWebEnabled) 'Compatibility distinguishes the disabled override from tested support'
+        $deniedConfiguration = $configuration.PSObject.Copy()
+        $deniedConfiguration.AllowUntestedServerVersions = $true
+        $deniedSave = Invoke-WebRequest -Method Post -Uri "$baseUrl$configurationRoute" -Headers $viewerHeaders -ContentType 'application/json' -Body ($deniedConfiguration | ConvertTo-Json -Depth 20) -SkipHttpErrorCheck
+        Assert-Test ([int]$deniedSave.StatusCode -eq 403) 'Ordinary users cannot change the compatibility-risk setting'
+        $env:LTVC_TEST_ADMIN_USERNAME = 'fixture-admin'
+        $env:LTVC_TEST_ADMIN_PASSWORD = $password
+        $env:LTVC_TEST_SETTINGS_ACTION = 'enable'
+        node (Join-Path $PSScriptRoot 'browser-plugin-settings-smoke.mjs')
+        if ($LASTEXITCODE -ne 0) { throw 'Real admin settings opt-in flow failed' }
+        $configuration = Invoke-RestMethod -Uri "$baseUrl$configurationRoute" -Headers $headers
+        $compatibility = Invoke-RestMethod -Uri "$baseUrl/LiveTvCategories/Compatibility" -Headers $viewerHeaders
+        $web = Invoke-WebRequest -Uri "$baseUrl/web/index.html" -SkipHttpErrorCheck
+        Assert-Test ($configuration.AllowUntestedServerVersions -and $compatibility.bundledWebVersionOverrideEnabled -and $compatibility.bundledWebVersionOverrideActive -and $compatibility.bundledWebEnabled -and -not [string]::IsNullOrWhiteSpace(($web.Headers['X-Live-TV-Categories-Web'] -join ''))) 'Admin opt-in enables the bundled interface immediately without restarting'
+        Assert-Test (@($compatibility.bundledWebSupportedServerVersions | Where-Object { [version]$_ -eq [version]($ServerVersion + '.0') }).Count -eq 0) 'An override never labels the server as tested'
+        Invoke-RestMethod -Method Post -Uri "$baseUrl/System/Shutdown" -Headers $headers | Out-Null
+        if (-not $process.WaitForExit(10000)) { throw 'Fixture server did not stop for override persistence check' }
+        $process = Start-Process -FilePath (Join-Path $ServerDirectory 'jellyfin.exe') -ArgumentList $arguments -WorkingDirectory $ServerDirectory -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runRoot 'restart-stdout.log') -RedirectStandardError (Join-Path $runRoot 'restart-stderr.log')
+        $restarted = $false
+        for ($attempt = 0; $attempt -lt 120; $attempt++) {
+            if ($process.HasExited) { throw "Restarted fixture server exited; logs: $runRoot" }
+            try {
+                $public = Invoke-RestMethod -Uri "$baseUrl/System/Info/Public" -TimeoutSec 2
+                if ($public.Version -eq $ServerVersion -and (Request-Status '/LiveTvCategories/ui/') -eq 200) { $restarted = $true; break }
+            } catch { }
+            Start-Sleep -Milliseconds 500
+        }
+        Assert-Test $restarted 'The isolated server restarts with its saved configuration'
+        $login = Json-Post '/Users/AuthenticateByName' @{ Username = 'fixture-admin'; Pw = $password } @{ Authorization = $clientHeader }
+        $headers = @{ Authorization = $clientHeader + ', Token="' + $login.AccessToken + '"' }
+        $viewerLogin = Json-Post '/Users/AuthenticateByName' @{ Username = 'fixture-viewer'; Pw = $viewerPassword } @{ Authorization = $clientHeader }
+        $viewerHeaders = @{ Authorization = $clientHeader + ', Token="' + $viewerLogin.AccessToken + '"' }
+        $configuration = Invoke-RestMethod -Uri "$baseUrl$configurationRoute" -Headers $headers
+        $compatibility = Invoke-RestMethod -Uri "$baseUrl/LiveTvCategories/Compatibility" -Headers $viewerHeaders
+        Assert-Test ($configuration.AllowUntestedServerVersions -and $compatibility.bundledWebVersionOverrideActive -and $compatibility.bundledWebEnabled) 'The explicit opt-in survives a server restart'
+        $env:LTVC_TEST_SETTINGS_ACTION = 'verify-enabled'
+        node (Join-Path $PSScriptRoot 'browser-plugin-settings-smoke.mjs')
+        if ($LASTEXITCODE -ne 0) { throw 'Persisted plugin settings browser check failed' }
+        $env:LTVC_TEST_SETTINGS_ACTION = 'disable'
+        node (Join-Path $PSScriptRoot 'browser-plugin-settings-smoke.mjs')
+        if ($LASTEXITCODE -ne 0) { throw 'Real admin settings opt-out flow failed' }
+        $configuration = Invoke-RestMethod -Uri "$baseUrl$configurationRoute" -Headers $headers
+        $compatibility = Invoke-RestMethod -Uri "$baseUrl/LiveTvCategories/Compatibility" -Headers $viewerHeaders
+        $web = Invoke-WebRequest -Uri "$baseUrl/web/index.html" -SkipHttpErrorCheck
+        Assert-Test (-not $configuration.AllowUntestedServerVersions -and -not $compatibility.bundledWebVersionOverrideEnabled -and -not $compatibility.bundledWebVersionOverrideActive -and -not $compatibility.bundledWebEnabled -and [string]::IsNullOrWhiteSpace(($web.Headers['X-Live-TV-Categories-Web'] -join ''))) 'Turning the override off immediately restores stock Web without restarting'
+    }
     $viewerPolicy = $viewer.Policy
     $viewerPolicy.EnableLiveTvAccess = $false
     Json-Post "/Users/$($viewer.Id)/Policy" $viewerPolicy $headers | Out-Null
     Assert-Test ((Request-Status '/LiveTvCategories' $viewerHeaders) -eq 403) 'Revoked Live TV permission is enforced after caching'
     [pscustomobject]@{ Server = $ServerVersion; BasePath = $BasePath; PassedChecks = $checks; Logs = $runRoot } | Format-List
 } finally {
-    Remove-Item Env:LTVC_TEST_URL, Env:LTVC_TEST_USERNAME, Env:LTVC_TEST_PASSWORD, Env:LTVC_TEST_BUNDLED_WEB -ErrorAction SilentlyContinue
+    Remove-Item Env:LTVC_TEST_URL, Env:LTVC_TEST_USERNAME, Env:LTVC_TEST_PASSWORD, Env:LTVC_TEST_BUNDLED_WEB, Env:LTVC_TEST_ADMIN_USERNAME, Env:LTVC_TEST_ADMIN_PASSWORD, Env:LTVC_TEST_SETTINGS_ACTION -ErrorAction SilentlyContinue
     if ($headers) { try { Invoke-RestMethod -Method Post -Uri "$baseUrl/System/Shutdown" -Headers $headers | Out-Null } catch { } }
     if ($process -and -not $process.HasExited -and -not $process.WaitForExit(10000)) { Stop-Process -Id $process.Id }
 }

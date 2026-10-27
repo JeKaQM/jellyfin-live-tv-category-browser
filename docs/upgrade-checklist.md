@@ -2,6 +2,12 @@
 
 Compatibility has three separate meanings: the DLL loads and its API works, the independent page works, and the integrated Web view works. A successful backend probe alone does not establish the third.
 
+## User-controlled version override in 0.9
+
+The default Web version restriction remains unchanged. Administrators can explicitly choose `AllowUntestedServerVersions` in the plugin settings after reading the warning. It permits the bundled interface on other versions without adding them to tested support. The preference persists, applies per request without a restart, and affects all users of the hosted Web interface. A missing bundle, invalid metadata or a server that cannot load the plugin is outside this override.
+
+The compatibility response distinguishes the saved preference (`bundledWebVersionOverrideEnabled`) from an override actually being used (`bundledWebVersionOverrideActive`). On a tested server the preference can be enabled while the active flag remains false. Keep scheduled drift checks and explicit version declarations: an override is a user's risk decision, not a substitute for compatibility maintenance. Real-server checks exercise the admin settings page, on/off transitions, persistence and rejected non-admin writes.
+
 ## What changed in 12.4
 
 Jellyfin [Server 12.4](https://github.com/jellyfin/jellyfin/releases/tag/v12.4) and [Web 12.4](https://github.com/jellyfin/jellyfin-web/releases/tag/v12.4) were released on 26 October 2026. Server updates its .NET dependencies to 10.0.14; Web updates `@jellyfin/sdk` from 1.0.1 to 1.0.2. The server changes do not alter this plugin's Live TV/authentication interfaces, and all three protected Web inputs remain unchanged. The shared integration can be reused, but the compiled Web client must be rebuilt from the new source and lockfile to include the dependency update.
@@ -22,7 +28,7 @@ The old guard correctly left stock Web active on an untested version, but the sc
 4. Stamp the compiled output with `scripts/web-build-identity.mjs`. Its source version, commit, integration fingerprint and asset hashes must match at packaging time. Do not stamp an old distribution as a new build.
 5. Run the same minimum-ABI DLL on every declared server, including a configured BaseUrl. Check authenticated APIs, normal-user permissions, revocation after caching, independent-page sign-in, paging, channel handoff and sign-out.
 6. For every proposed integrated server, run both modern and TV layouts against the actual Web build. Check Programmes versus remembered tabs, page-two channel Back/focus, category Back/focus and SVG controls. Physical LG/webOS testing remains a separate acceptance step.
-7. Add versions to the exact Web allowlist only after those checks pass. Keep unknown versions guarded. A green latest-stable/master canary does not automatically widen support or authorize a release.
+7. Add versions to the exact Web allowlist only after those checks pass. Keep unknown versions guarded by default and leave the override off in normal tests. Test override behavior separately without changing the tested list. A green latest-stable/master canary does not automatically widen support or authorize a release.
 8. Preserve published catalog entries unchanged in `web/catalog-history.json`, bump the plugin version and update release notes. Tag only the reviewed commit. The release must publish the exact runtime tested by CI, not an untested rebuild.
 
 ## Dependency advisories are separate from compatibility

@@ -1,15 +1,17 @@
-# Live TV Categories 0.8.0.0
+# Live TV Categories 0.9.0.0
 
-Updates compatibility for Jellyfin 12.4 and rebuilds the bundled client from Jellyfin Web 12.4, including its SDK 1.0.2 dependency update.
+Adds a user-controlled override for the bundled interface's Jellyfin version restriction.
 
-- Enables integrated **Live TV → Programmes** browsing on explicitly tested Servers 12.2, 12.3 and 12.4.
-- Keeps the same minimum-12.0 plugin DLL and independent browser across tested Servers 12.0–12.4.
-- Reuses the checked category integration: upstream protected inputs and the server Live TV/authentication interfaces have not changed. Server 12.4 updates its .NET dependencies to 10.0.14.
-- Retains SVG category controls for TVs, category/page/focus restoration after channel Back, and modern/TV browser coverage.
-- Preserves Web build provenance checks, stable-release drift detection and all previous published catalog entries.
+Open **Dashboard → Plugins → Live TV Categories** and enable **Allow bundled interface on untested Jellyfin versions** after reading its warning. Save and hard-refresh; no server restart is needed to change the setting. It is off by default, persists across restarts and upgrades, and can be switched off again without restarting.
 
-Update through the Jellyfin catalog, restart Jellyfin, then hard-refresh the browser. Use **Live TV → Programmes** on Server 12.2/12.3/12.4, or `/LiveTvCategories/ui/` (including any BaseUrl) on all five tested versions.
+**Warning:** the override affects everyone using this server's hosted Web client. It serves the plugin's entire bundled Jellyfin Web interface, which may have older dependencies or lack newer Web fixes. Untested combinations can break login, playback, recording controls or the dashboard. The override does not repair server API incompatibilities or a plugin that Jellyfin cannot load, and it does not declare the version tested.
 
-Future Jellyfin releases may change Web components, routing, SDK or server APIs and require another plugin update. Maintenance is best-effort; immediate support for every Jellyfin release is not guaranteed. Unknown versions remain guarded. Physical LG/webOS hardware still needs acceptance testing, and native Android TV, Fire TV and Swiftfin screens are unchanged.
+- Uses Jellyfin's standard administrator-only plugin configuration API and preserves existing configuration fields when saving.
+- Reports saved and actually active override states separately, without changing tested version lists.
+- Keeps missing Web assets and invalid compatibility metadata blocked even when the toggle is enabled.
+- Checks the real settings page, live enable/disable, saved opt-in after a restart, and non-administrator save rejection on an isolated server.
+- Retains the Web 12.4 / SDK 1.0.2 bundle, TV SVG controls, paging and category Back/focus fixes. Default tested support remains Servers 12.0–12.4 for the backend/independent page and 12.2/12.3/12.4 for integration.
 
-The bundled client retains the official Web 12.4 dependency lock and inherited upstream advisories; compatibility checks are not a clean security audit. See the [upgrade checklist and dependency notes](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/blob/v0.8.0.0/docs/upgrade-checklist.md).
+Install through the catalog, restart once for the plugin update, then refresh your browser. Subsequent toggle changes apply without restarting. If the dashboard becomes unusable after an override, follow the [configuration-file recovery instructions](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/blob/v0.9.0.0/docs/catalog-installation.md#version-override-and-recovery).
+
+Maintenance remains best-effort. Enabling the override cannot guarantee future Jellyfin compatibility. Physical LG/webOS hardware still needs acceptance testing. The bundled client retains inherited upstream dependency advisories; see the [upgrade checklist](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/blob/v0.9.0.0/docs/upgrade-checklist.md).

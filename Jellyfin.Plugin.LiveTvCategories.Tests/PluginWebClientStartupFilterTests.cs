@@ -1,4 +1,5 @@
 using Jellyfin.Plugin.LiveTvCategories.WebClient;
+using Jellyfin.Plugin.LiveTvCategories.Configuration;
 using Xunit;
 
 namespace Jellyfin.Plugin.LiveTvCategories.Tests;
@@ -37,6 +38,69 @@ public sealed class PluginWebClientStartupFilterTests
         }
     }
 
+    [Fact]
+    public void ConfigurationRequiresAnExplicitAdministratorOptIn()
+    {
+        Assert.False(new PluginConfiguration().AllowUntestedServerVersions);
+    }
+
+    [Fact]
+    public void ExplicitOverrideAllowsVersionMismatchesWithoutClaimingTheyAreTested()
+    {
+        var manifest = WebCompatibilityManifest.Current;
+        var testedVersions = manifest.SupportedServerVersions.ToArray();
+        var highest = testedVersions.Select(Version.Parse).Max()!;
+        var untested = new[]
+        {
+            new Version(highest.Major, highest.Minor + 1, 0, 0),
+            new Version(highest.Major, highest.Minor, highest.Build + 1, 0),
+            new Version(highest.Major + 1, 0, 0, 0),
+            new Version(11, 0, 0, 0)
+        };
+        foreach (var version in untested)
+        {
+            Assert.False(PluginWebClientStartupFilter.CanServeBundledWeb(version));
+            Assert.True(PluginWebClientStartupFilter.CanServeBundledWeb(version, true));
+            var state = PluginWebClientStartupFilter.GetBundledWebState(version, true, true);
+            Assert.True(state.Enabled);
+            Assert.True(state.VersionOverrideEnabled);
+            Assert.True(state.VersionOverrideActive);
+            Assert.False(PluginWebClientStartupFilter.IsTestedServerVersion(version));
+        }
+        Assert.Equal(testedVersions, manifest.SupportedServerVersions);
+    }
+
+    [Fact]
+    public void RevokingTheOverrideRestoresTheGuardAndTestedVersionsNeverClaimAnActiveOverride()
+    {
+        var tested = Version.Parse(WebCompatibilityManifest.Current.SupportedServerVersions.Last());
+        var untested = new Version(tested.Major + 1, 0, 0, 0);
+        var configuration = new PluginConfiguration { AllowUntestedServerVersions = true };
+        Assert.True(PluginWebClientStartupFilter.GetBundledWebState(untested, configuration.AllowUntestedServerVersions, true).VersionOverrideActive);
+        configuration.AllowUntestedServerVersions = false;
+        var disabled = PluginWebClientStartupFilter.GetBundledWebState(untested, configuration.AllowUntestedServerVersions, true);
+        Assert.False(disabled.Enabled);
+        Assert.False(disabled.VersionOverrideEnabled);
+        Assert.False(disabled.VersionOverrideActive);
+        var approved = PluginWebClientStartupFilter.GetBundledWebState(tested, true, true);
+        Assert.True(approved.Enabled);
+        Assert.True(approved.VersionOverrideEnabled);
+        Assert.False(approved.VersionOverrideActive);
+    }
+
+    [Fact]
+    public void MissingWebAssetsNeverClaimAnEnabledInterfaceOrAnActiveOverride()
+    {
+        var tested = Version.Parse(WebCompatibilityManifest.Current.SupportedServerVersions.Last());
+        foreach (var version in new[] { tested, new Version(tested.Major + 1, 0, 0, 0) })
+        {
+            var state = PluginWebClientStartupFilter.GetBundledWebState(version, true, false);
+            Assert.False(state.Enabled);
+            Assert.True(state.VersionOverrideEnabled);
+            Assert.False(state.VersionOverrideActive);
+        }
+    }
+
     [Theory]
     [InlineData(null, "/web")]
     [InlineData("", "/web")]
@@ -64,7 +128,13 @@ public sealed class PluginWebClientStartupFilterTests
     [InlineData("{\"schemaVersion\":99}")]
     public void InvalidCompatibilityDeclarationFailsClosed(string json)
     {
-        Assert.Empty(WebCompatibilityManifest.Parse(json).SupportedServerVersions);
+        var manifest = WebCompatibilityManifest.Parse(json);
+        Assert.Empty(manifest.SupportedServerVersions);
+        Assert.False(PluginWebClientStartupFilter.CanServeBundledWeb(new Version(12, 4, 0, 0), true, manifest));
+        var state = PluginWebClientStartupFilter.GetBundledWebState(new Version(12, 4, 0, 0), true, true, manifest);
+        Assert.False(state.Enabled);
+        Assert.True(state.VersionOverrideEnabled);
+        Assert.False(state.VersionOverrideActive);
     }
 
     [Fact]
