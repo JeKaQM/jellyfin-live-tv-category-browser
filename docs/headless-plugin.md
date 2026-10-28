@@ -1,6 +1,6 @@
 # Headless category-bridge development
 
-Plugin `0.9.0.0` builds with .NET 10 against the minimum tested Jellyfin `12.0.0` packages. Release checks run the same DLL on `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0` and `12.4.0`. Future ABI compatibility is not guaranteed.
+Plugin `0.9.0.1` builds with .NET 10 against the minimum tested Jellyfin `12.0.0` packages. Release checks run the same DLL on `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0` and `12.4.0`. Future ABI compatibility is not guaranteed.
 
 For production, use the [catalog package](catalog-installation.md). A DLL-only manual install supplies the API; adding the published `category-browser/` directory also supplies the independent screen. Full Programmes integration additionally needs the pinned `web/` tree and defaults to explicitly tested Servers `12.2.0`, `12.3.0` and `12.4.0`. Administrators can save `AllowUntestedServerVersions` through the plugin settings to override only the Web version check, after reading its warning. It applies on the next request without restarting and does not bypass Jellyfin authentication, its plugin loader or missing assets.
 
@@ -35,11 +35,11 @@ sudo docker run --rm --user "$(id -u):$(id -g)" \
 
 Locate the native plugin directory from Jellyfin's configured data directory, or inspect the container mount that supplies `/config`; its plugins directory is normally `/config/plugins` inside the container. Do not copy into a guessed system path.
 
-Stop Jellyfin. Create a dedicated `Live TV Categories_0.9.0.0` directory under the actual plugin root, copy the DLL and `category-browser/` from `artifacts/plugin`, and give the Jellyfin service/container user access to that directory. Jellyfin must be able to create `meta.json` on first startup. Disable earlier copies of the same plugin, then restart.
+Stop Jellyfin. Create a dedicated `Live TV Categories_0.9.0.1` directory under the actual plugin root, copy the DLL and `category-browser/` from `artifacts/plugin`, and give the Jellyfin service/container user access to that directory. Jellyfin must be able to create `meta.json` on first startup. Disable earlier copies of the same plugin, then restart.
 
 Do not manually overwrite stock Jellyfin Web. Omitting `web/` deliberately leaves it active. Browse the independent page at `/LiveTvCategories/ui/`, including the server's configured BaseUrl.
 
-Verify **Dashboard → Plugins** shows version `0.9.0.0` without a restart pending. Logs should identify the plugin and independent-browser route; with the override off, a bundled-Web mismatch warning on 12.0 or 12.1 is expected.
+Verify **Dashboard → Plugins** shows version `0.9.0.1` without a restart pending. Logs should identify the plugin and independent-browser route; with the override off, a bundled-Web mismatch warning on 12.0 or 12.1 is expected.
 
 ## API smoke test
 

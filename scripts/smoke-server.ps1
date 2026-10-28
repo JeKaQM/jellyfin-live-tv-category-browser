@@ -182,15 +182,19 @@ try {
         if (-not $process.WaitForExit(10000)) { throw 'Fixture server did not stop for override persistence check' }
         $process = Start-Process -FilePath (Join-Path $ServerDirectory 'jellyfin.exe') -ArgumentList $arguments -WorkingDirectory $ServerDirectory -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runRoot 'restart-stdout.log') -RedirectStandardError (Join-Path $runRoot 'restart-stderr.log')
         $restarted = $false
-        for ($attempt = 0; $attempt -lt 120; $attempt++) {
+        $restartWait = [System.Diagnostics.Stopwatch]::StartNew()
+        while ($restartWait.Elapsed.TotalSeconds -lt 60) {
             if ($process.HasExited) { throw "Restarted fixture server exited; logs: $runRoot" }
             try {
-                $public = Invoke-RestMethod -Uri "$baseUrl/System/Info/Public" -TimeoutSec 2
-                if ($public.Version -eq $ServerVersion -and (Request-Status '/LiveTvCategories/ui/') -eq 200) { $restarted = $true; break }
+                # Public info and plugin assets can respond while Jellyfin is
+                # still loading. A persisted administrator session reaching an
+                # authenticated API confirms it is ready for the strict logins below.
+                $serverInfo = Invoke-RestMethod -Uri "$baseUrl/System/Info" -Headers $headers -TimeoutSec 2
+                if ($serverInfo.Version -eq $ServerVersion -and $serverInfo.Id -eq $public.Id) { $restarted = $true; break }
             } catch { }
             Start-Sleep -Milliseconds 500
         }
-        Assert-Test $restarted 'The isolated server restarts with its saved configuration'
+        Assert-Test $restarted 'The restarted server accepts authenticated API requests with its saved configuration'
         $login = Json-Post '/Users/AuthenticateByName' @{ Username = 'fixture-admin'; Pw = $password } @{ Authorization = $clientHeader }
         $headers = @{ Authorization = $clientHeader + ', Token="' + $login.AccessToken + '"' }
         $viewerLogin = Json-Post '/Users/AuthenticateByName' @{ Username = 'fixture-viewer'; Pw = $viewerPassword } @{ Authorization = $clientHeader }

@@ -6,10 +6,10 @@
 
 Live TV Categories is an unofficial Jellyfin plugin for category-first browsing of native M3U channels. It derives categories from `group-title` metadata and leaves playback, guide, recording and DVR behavior to Jellyfin.
 
-Version `0.9.0.0` adds an administrator setting to keep using the bundled interface on untested Jellyfin versions. It is off by default and includes a clear risk warning. Tested support remains unchanged: integrated browsing on Servers `12.2.0`, `12.3.0` and `12.4.0`, with the same minimum-12.0 plugin and independent browser on `12.0.0` through `12.4.0`.
+Version `0.9.0.1` adds an administrator setting to keep using the bundled interface on untested Jellyfin versions. It is off by default and includes a clear risk warning. Tested support remains unchanged: integrated browsing on Servers `12.2.0`, `12.3.0` and `12.4.0`, with the same minimum-12.0 plugin and independent browser on `12.0.0` through `12.4.0`.
 
 > [!IMPORTANT]
-> Install `0.9.0.0` only once it appears in the catalog or [GitHub Releases](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest). An override permits an untested combination; it does not make that combination supported.
+> Install `0.9.0.1` only once it appears in the catalog or [GitHub Releases](https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest). An override permits an untested combination; it does not make that combination supported.
 
 ## Features
 
@@ -28,7 +28,7 @@ Version `0.9.0.0` adds an administrator setting to keep using the bundled interf
 
 | Plugin | Jellyfin Server | Category API and independent browser | Bundled Programmes integration |
 | --- | --- | --- | --- |
-| `0.9.0.0` | `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0`, `12.4.0` | Same minimum-ABI DLL | Tested on `12.2.0`, `12.3.0` and `12.4.0`; optional override for other versions |
+| `0.9.0.1` | `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0`, `12.4.0` | Same minimum-ABI DLL | Tested on `12.2.0`, `12.3.0` and `12.4.0`; optional override for other versions |
 | `0.8.0.0` | `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0`, `12.4.0` | Same minimum-ABI DLL | `12.2.0`, `12.3.0` and `12.4.0`, using tested Web 12.4 |
 | `0.7.0.1` | `12.0.0`, `12.1.0`, `12.2.0`, `12.3.0` | Same minimum-ABI DLL | `12.2.0` and `12.3.0`, using tested Web 12.3 |
 | `0.6.0.0` | `12.0.0`, `12.1.0`, `12.2.0` | Tested with the same minimum-ABI DLL | `12.2.0` only |
@@ -37,7 +37,7 @@ Version `0.9.0.0` adds an administrator setting to keep using the bundled interf
 | `0.3.0.0` | `12.0.0` | Earlier API; no independent browser | `12.0.0` |
 | `0.2.0.0` | `10.11.11` | Earlier API; no independent browser | `10.11.11` |
 
-The `0.9.0.0` package targets the minimum Jellyfin `12.0.0.0` ABI. Release checks exercise the same DLL on all five declared versions, including a configured `/jellyfin` BaseUrl, and integrated browsing in modern and TV layouts on all three supported servers. That does not promise compatibility with an arbitrary newer ABI.
+The `0.9.0.1` package targets the minimum Jellyfin `12.0.0.0` ABI. Release checks exercise the same DLL on all five declared versions, including a configured `/jellyfin` BaseUrl, and integrated browsing in modern and TV layouts on all three supported servers. That does not promise compatibility with an arbitrary newer ABI.
 
 By default, the complete bundled Web 12.4 client is served only on tested Servers `12.2.0`/`12.3.0`/`12.4.0`. Other versions keep stock Web and can use the independent browser if the backend remains compatible. An administrator can explicitly override the Web version restriction using the setting below. Stock Web files are never overwritten.
 
@@ -60,15 +60,15 @@ https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/latest/down
 ```
 
 1. Name the repository `Live TV Categories`, save, and open **Catalog**.
-2. Install `0.9.0.0` on one of its five tested Jellyfin 12 versions once that release is listed. Older published entries remain available for their exact versions.
+2. Install `0.9.0.1` on one of its five tested Jellyfin 12 versions once that release is listed. Older published entries remain available for their exact versions.
 3. Restart Jellyfin, then hard-refresh the browser once.
 4. Open `/LiveTvCategories/ui/` on your server. Include the configured BaseUrl, for example `/jellyfin/LiveTvCategories/ui/`.
 5. On Jellyfin `12.2.0`, `12.3.0` or `12.4.0`, you can also use **Live TV → Programmes**.
 
-Successful `0.9.0.0` startup includes:
+Successful `0.9.0.1` startup includes:
 
 ```text
-Loaded plugin: Live TV Categories 0.9.0.0
+Loaded plugin: Live TV Categories 0.9.0.1
 Live TV Categories independent browser is available at .../LiveTvCategories/ui
 ```
 
@@ -149,7 +149,7 @@ bash scripts/build-plugin.sh
 Build the complete catalog package:
 
 ```bash
-PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.9.0.0' \
+PLUGIN_RELEASE_BASE_URL='https://github.com/JeKaQM/jellyfin-live-tv-category-browser/releases/download/v0.9.0.1' \
 bash scripts/build-release.sh
 ```
 

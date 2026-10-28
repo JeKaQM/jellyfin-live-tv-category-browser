@@ -3,15 +3,19 @@ import cardBuilder from 'components/cardbuilder/cardBuilder';
 import imageLoader from 'components/images/imageLoader';
 import loading from 'components/loading/loading';
 import * as mainTabsManager from 'components/maintabsmanager';
+import { ServerConnections } from 'lib/jellyfin-apiclient';
 import inputManager from 'scripts/inputManager';
 import * as userSettings from 'scripts/settings/userSettings';
-import Dashboard from 'utils/dashboard';
 
-const request = (resource, params = {}) => ApiClient.ajax({
-    type: 'GET',
-    url: ApiClient.getUrl(resource, { userId: Dashboard.getCurrentUserId(), ...params }),
-    dataType: 'json'
-});
+const request = (resource, params = {}) => {
+    const apiClient = ServerConnections.currentApiClient();
+    if (!apiClient) return Promise.reject(new Error('No Jellyfin session is available'));
+    return apiClient.ajax({
+        type: 'GET',
+        url: apiClient.getUrl(resource, { userId: apiClient.getCurrentUserId(), ...params }),
+        dataType: 'json'
+    });
+};
 
 export default {
     loading,
