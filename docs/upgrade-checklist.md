@@ -8,6 +8,17 @@ The default Web version restriction remains unchanged. Administrators can explic
 
 The compatibility response distinguishes the saved preference (`bundledWebVersionOverrideEnabled`) from an override actually being used (`bundledWebVersionOverrideActive`). On a tested server the preference can be enabled while the active flag remains false. Keep scheduled drift checks and explicit version declarations: an override is a user's risk decision, not a substitute for compatibility maintenance. Real-server checks exercise the admin settings page, on/off transitions, persistence and rejected non-admin writes.
 
+## Upcoming Web API context migration
+
+Upstream Web master commit `4c23d9728ea8566337ed0b7ff29dd658b06e86e5`
+removes `__legacyApiClient__` from `useApi` and exposes a `serverId` derived
+from `user.ServerId` instead. The category channel cards now use
+`user.ServerId` directly, a field shared by stable Web 12.4 and master, and
+refresh their memoized options when that identity changes. Executable view
+regressions cover card identity without a legacy client, server changes and
+missing identity; stable and master type/build checks remain required.
+This adaptation does not change the pinned bundle or supported versions.
+
 ## What changed in 12.4
 
 Jellyfin [Server 12.4](https://github.com/jellyfin/jellyfin/releases/tag/v12.4) and [Web 12.4](https://github.com/jellyfin/jellyfin-web/releases/tag/v12.4) were released on 26 October 2026. Server updates its .NET dependencies to 10.0.14; Web updates `@jellyfin/sdk` from 1.0.1 to 1.0.2. The server changes do not alter this plugin's Live TV/authentication interfaces, and all three protected Web inputs remain unchanged. The shared integration can be reused, but the compiled Web client must be rebuilt from the new source and lockfile to include the dependency update.

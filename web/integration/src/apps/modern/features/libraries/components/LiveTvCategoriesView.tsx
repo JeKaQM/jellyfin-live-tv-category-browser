@@ -202,7 +202,7 @@ const CategoryTile: FC<CategoryTileProps> = ({ category, onSelect }) => {
 };
 
 const LiveTvCategoriesView: FC = () => {
-    const { api, __legacyApiClient__, user } = useApi();
+    const { api, user } = useApi();
     const { libraryPageSize } = useUserSettings();
     const location = useLocation();
     const navigate = useNavigate();
@@ -246,13 +246,13 @@ const LiveTvCategoriesView: FC = () => {
         context: CollectionType.Livetv,
         coverImage: true,
         queryKey: categoryChannelsQueryKey,
-        serverId: __legacyApiClient__?.serverId(),
+        serverId: user?.ServerId,
         shape: CardShape.Square,
         showCurrentProgram: true,
         showCurrentProgramTime: true,
         showDetailsMenu: true,
         showTitle: true
-    }), [ __legacyApiClient__, categoryChannelsQueryKey ]);
+    }), [ categoryChannelsQueryKey, user?.ServerId ]);
 
     const selectCategory = useCallback((selectedCategoryId: string) => {
         // Remember the tile on the LIST entry before pushing its channel page,
