@@ -19,6 +19,19 @@ regressions cover card identity without a legacy client, server changes and
 missing identity; stable and master type/build checks remain required.
 This adaptation does not change the pinned bundle or supported versions.
 
+## Upcoming Web test runner migration
+
+Upstream Web commit `67bd43978f9d3254dd2a3420b82b7cd57d692dd1`
+updates Vitest from 3.2.7 to 4.1.11. Vitest 4's Vite module runner requests
+legacy HTML with a `?import` query, so the plain-ID template mock no longer
+intercepts it before JavaScript import analysis. The controller tests
+register both request IDs with the same real-file loader, preserving stable
+Vitest 3 coverage and all existing behavior tests. A markup regression
+confirms that the actual HTML, not an asset URL or placeholder, is loaded.
+Production imports and upstream lint/build configuration stay unchanged.
+Keep stable/master checks and the real-server browser matrix; neither the
+pinned Web source nor supported versions change.
+
 ## What changed in 12.4
 
 Jellyfin [Server 12.4](https://github.com/jellyfin/jellyfin/releases/tag/v12.4) and [Web 12.4](https://github.com/jellyfin/jellyfin-web/releases/tag/v12.4) were released on 26 October 2026. Server updates its .NET dependencies to 10.0.14; Web updates `@jellyfin/sdk` from 1.0.1 to 1.0.2. The server changes do not alter this plugin's Live TV/authentication interfaces, and all three protected Web inputs remain unchanged. The shared integration can be reused, but the compiled Web client must be rebuilt from the new source and lockfile to include the dependency update.

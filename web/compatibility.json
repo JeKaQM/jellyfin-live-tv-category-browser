@@ -30,6 +30,9 @@
     "src/apps/modern/features/libraries/components/PageTabContent.tsx": "430e09f6737f18ed1c06210a18cf62d556717922"
   },
   "previousOverlayHashes": {
+    "src/apps/modern/features/libraries/utils/liveTvLegacyController.test.js": [
+      "a83225d23a94ec613f6e12e1f932d309a3979581"
+    ],
     "src/apps/legacy/controllers/livetv/livetvcategoriesAdapter.js": [
       "65db4507a47126355bfc7fb9013ae9bc2e76779d"
     ],
