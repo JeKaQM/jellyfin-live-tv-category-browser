@@ -1,7 +1,7 @@
 import adapter from './livetvcategoriesAdapter';
 import { categoryPageSize, normalizeCategories } from './livetvcategoriesModel';
 import { categoryIcon, createIcon } from './livetvcategoriesIcons';
-import template from './livetvcategories.template.html';
+import template from './livetvcategories.template.html?raw';
 
 import './livetvcategories.scss';
 

@@ -10,10 +10,6 @@ const adapter = vi.hoisted(() => ({
     onInput: vi.fn(), offInput: vi.fn()
 }));
 vi.mock('apps/legacy/controllers/livetv/livetvcategoriesAdapter', () => ({ default: adapter }));
-vi.mock('apps/legacy/controllers/livetv/livetvcategories.template.html', async () => {
-    const { readFile } = await import('node:fs/promises');
-    return { default: await readFile('src/apps/legacy/controllers/livetv/livetvcategories.template.html', 'utf8') };
-});
 
 import Controller from 'apps/legacy/controllers/livetv/livetvcategories';
 
@@ -37,6 +33,12 @@ beforeEach(() => {
 });
 
 describe('legacy category controller behavior', () => {
+    it('loads the real HTML template without a test-only module mock', () => {
+        expect(view.querySelector('.liveTvCategoryHeroTitle').textContent).toBe('Browse Live TV');
+        expect(view.querySelector('.liveTvCategoryList')).not.toBeNull();
+        expect(view.querySelector('.liveTvCategoryChannels')).not.toBeNull();
+    });
+
     it('renders owned SVG controls and treats category names as text', async () => {
         adapter.getCategories.mockResolvedValue([{ id: 'news', name: '<img src=x onerror=alert(1)>', channelCount: 2 }]);
         await controller.renderTab();
