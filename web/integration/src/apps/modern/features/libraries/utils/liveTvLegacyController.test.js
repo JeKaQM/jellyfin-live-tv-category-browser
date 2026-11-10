@@ -10,6 +10,13 @@ const adapter = vi.hoisted(() => ({
     onInput: vi.fn(), offInput: vi.fn()
 }));
 vi.mock('apps/legacy/controllers/livetv/livetvcategoriesAdapter', () => ({ default: adapter }));
+const loadTemplate = vi.hoisted(() => async () => {
+    const { readFile } = await import('node:fs/promises');
+    return { default: await readFile('src/apps/legacy/controllers/livetv/livetvcategories.template.html', 'utf8') };
+});
+// Vitest 3 requests the plain HTML ID; Vitest 4's Vite runner adds ?import.
+vi.mock('apps/legacy/controllers/livetv/livetvcategories.template.html', loadTemplate);
+vi.mock('apps/legacy/controllers/livetv/livetvcategories.template.html?import', loadTemplate);
 
 import Controller from 'apps/legacy/controllers/livetv/livetvcategories';
 
@@ -33,7 +40,7 @@ beforeEach(() => {
 });
 
 describe('legacy category controller behavior', () => {
-    it('loads the real HTML template without a test-only module mock', () => {
+    it('loads the actual HTML template markup through the module mock', () => {
         expect(view.querySelector('.liveTvCategoryHeroTitle').textContent).toBe('Browse Live TV');
         expect(view.querySelector('.liveTvCategoryList')).not.toBeNull();
         expect(view.querySelector('.liveTvCategoryChannels')).not.toBeNull();

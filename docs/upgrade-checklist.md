@@ -22,14 +22,15 @@ This adaptation does not change the pinned bundle or supported versions.
 ## Upcoming Web test runner migration
 
 Upstream Web commit `67bd43978f9d3254dd2a3420b82b7cd57d692dd1`
-updates Vitest from 3.2.7 to 4.1.11. The legacy controller's HTML mock no
-longer prevents Vite from parsing the template as JavaScript. Importing the
-owned template explicitly with `?raw` lets Vite load the real HTML string;
-Webpack still uses its existing HTML loader. The controller tests now load
-that actual template without a mock, with a regression for its required
-markup. Keep stable and master type, unit, lint, style, production-build and
-ES5 checks, plus the real-server browser matrix. This does not change the
-pinned Web source or supported versions.
+updates Vitest from 3.2.7 to 4.1.11. Vitest 4's Vite module runner requests
+legacy HTML with a `?import` query, so the plain-ID template mock no longer
+intercepts it before JavaScript import analysis. The controller tests
+register both request IDs with the same real-file loader, preserving stable
+Vitest 3 coverage and all existing behavior tests. A markup regression
+confirms that the actual HTML, not an asset URL or placeholder, is loaded.
+Production imports and upstream lint/build configuration stay unchanged.
+Keep stable/master checks and the real-server browser matrix; neither the
+pinned Web source nor supported versions change.
 
 ## What changed in 12.4
 
